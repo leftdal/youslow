@@ -56,6 +56,14 @@ var T_numofrebufferings=0;
 var T_bufferdurationwithtime='';
 
 
+var available_video_quality='';
+var T_available_video_quality='';
+
+var fraction=0;
+var T_fraction=0;
+
+
+var version='Chrome 1.1.7';
 
 function onYouTubePlayerReady(playerId) {
 	
@@ -97,7 +105,19 @@ function onYouTubePlayerReady(playerId) {
 	
 	var initialState = player.getPlayerState();
 	
-	if(initialState==-1 && video_url != null){
+	
+	// Gather all available bitrates for the video
+	available_video_quality = '';
+	var quality_list = player.getAvailableQualityLevels();
+	for (var prop in quality_list) {
+		  if (quality_list.hasOwnProperty(prop)) {
+			  available_video_quality = available_video_quality+quality_list[prop]+":";
+		  }
+	}
+	console.log(available_video_quality);
+
+	
+	if(initialState==-1){
 		isInitialBuffering = true;
 		initialBufferingStartTime = new Date();		
 	}
@@ -124,6 +144,8 @@ function onYouTubePlayerReady(playerId) {
 	 */
 	setInterval(function(){
 		
+		//update current video loaded fraction
+		fraction = player.getVideoLoadedFraction();
 
 		var initialState = player.getPlayerState();
 		
@@ -135,21 +157,14 @@ function onYouTubePlayerReady(playerId) {
 			elapsedTime = elapsedTime + seconds;
 			startTime = null;
 		}
+		
 
-		current_video_url = player.getVideoUrl();
 		
         if(initialState==1){
         	startTime = new Date();
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
 			bufferingStatusUpdate();
 		}else if(initialState==-1){
-			if(video_url != current_video_url){
-				console.log("YouSlow: Movie changed!");
-	        	/*
-	        	 * Call locally saved event data and report for the video URL change events
-	        	 */
-	        	call_data_for_video_url_change_event();
-			}
 			bufferingStatusUpdateValue = "NOT STARTED";
 			bufferingStatusUpdate();
 			isInitialBuffering = true;
@@ -172,7 +187,7 @@ function getIP() {
 	if (window.XMLHttpRequest) xmlhttp = new XMLHttpRequest();
     else xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
 		
-	console.log("YouSlow: We use api.hostip.info to find a host IP address.");
+	console.log("YouSlow: We use api.ipify.info to find a host IP address.");
 	//    xmlhttp.open("GET","http://api.hostip.info/get_html.php",false);
     xmlhttp.open("GET","https://api.ipify.org/",false);
     xmlhttp.send();
@@ -425,6 +440,7 @@ function state() {
 				elapsedTime = elapsedTime + seconds;
 				startTime = null;
 			}
+			
 			report();
 			
 		}else{
@@ -456,9 +472,6 @@ function state() {
 	}else if(currentState==-1){
 		
 		current_video_url = player.getVideoUrl();
-		
-//		console.log("video_url: "+video_url);
-//		console.log("current_video_url: "+current_video_url);
 
 		if(video_url != current_video_url){
 			console.log("YouSlow: Movie changed!");
@@ -495,12 +508,16 @@ function state() {
 			numofrebufferings=0;
 			bufferdurationwithtime='';
 			avglatency='';
+			available_video_quality='';
+
 		}
 		
 		
 	}else{
 		
 		if(currentState==1){
+			
+//			console.log("YouSlow: isInitialBuffering: "+isInitialBuffering);
 			
 			if(startTime != null){
 				endTime = new Date();
@@ -591,6 +608,9 @@ function initialData(){
 	requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
 	numofrebufferings=0;
 	bufferdurationwithtime='';
+	available_video_quality='';
+	fraction=0;
+	
 }
 
 
@@ -613,6 +633,8 @@ function initialData_T(){
 	T_requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
 	T_numofrebufferings=0;
 	T_bufferdurationwithtime='';
+	T_available_video_quality='';
+	T_fraction=0;
 	
 }
 
@@ -651,16 +673,29 @@ function call_data_for_video_url_change_event(){
 	
 	if(bufferingDuration>elapsedTime)
 		isGood = false;
-
+	
 	if(elapsedTime<1)
 		isGood = false;
 	
 	/*
 	 * The below msg appears if no good, No-good msg prevents the unnecssarry report when the url changes 
 	 */
-	if(!isGood)
+	if(!isGood){
 		console.log('No good at call_data_for_video_url_change_event');
-
+		available_video_quality = '';
+		var quality_list = player.getAvailableQualityLevels();
+		for (var prop in quality_list) {
+			  if (quality_list.hasOwnProperty(prop)) {
+				  available_video_quality = available_video_quality+quality_list[prop]+":";
+			  }
+		}
+		console.log("YouSlow: new video avail. bitrates - "+available_video_quality);
+		
+		isInitialBuffering = true;
+		initialBufferingStartTime = new Date();
+		
+	}
+	
 	if(isGood){
 	    var URLparameters = "localtime="+timeReport	
 							+"&hostname="+window.localStorage.getItem("hostname")
@@ -678,11 +713,15 @@ function call_data_for_video_url_change_event(){
 							+"&timelength="+window.localStorage.getItem("timelength")
 							+"&initialbufferingtime="+window.localStorage.getItem("initialbufferingtime")
 							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
-							+"&avglatency="+T_avglatency.toString();
+							+":"+window.localStorage.getItem("fraction")
+							+"&avglatency="+T_avglatency //Should get T_avglatency
+							+"&allquality="+window.localStorage.getItem("allquality")
+	    					+"&version="+version;
 	    		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured7.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
+//	    console.log("YouSlow: T_avglatency - "+T_avglatency);
 	    					
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", videoInfoURL, true);
@@ -691,6 +730,21 @@ function call_data_for_video_url_change_event(){
 		  if (xhr.readyState == 4) {
 		    console.log("YouSlow: buffering events reported for video URL changes...");
 		    previouslyAbandonedDuetoBuffering=0;
+		    
+		    initialData();
+		    
+		    // update list for the current video
+			available_video_quality = '';
+			var quality_list = player.getAvailableQualityLevels();
+			for (var prop in quality_list) {
+				  if (quality_list.hasOwnProperty(prop)) {
+					  available_video_quality = available_video_quality+quality_list[prop]+":";
+				  }
+			}
+			console.log("YouSlow: new video avail. bitrates - "+available_video_quality);
+			isInitialBuffering = true;
+			initialBufferingStartTime = new Date();
+		    
 		  }
 		}
 		xhr.send();
@@ -762,7 +816,7 @@ function bufferingStatusUpdate(){
 	    window.localStorage.setItem("bufferflag", bufferingStatusUpdateValue);  // <-- Local storage!
 	    
 	    window.localStorage.removeItem("avglatency");      // <-- Local storage!
-	    window.localStorage.setItem("avglatency", avglatency.toString());  // <-- Local storage!
+	    window.localStorage.setItem("avglatency", avglatency);  // <-- Local storage!
 
 	    window.localStorage.removeItem("requestedresolutionswithtime");      // <-- Local storage!
 	    window.localStorage.setItem("requestedresolutionswithtime", requestedresolutionswithtime);  // <-- Local storage!
@@ -772,6 +826,22 @@ function bufferingStatusUpdate(){
 
 	    window.localStorage.removeItem("bufferdurationwithtime");      // <-- Local storage!
 	    window.localStorage.setItem("bufferdurationwithtime", bufferdurationwithtime);  // <-- Local storage!
+	    
+	    window.localStorage.removeItem("fraction");      // <-- Local storage!
+	    window.localStorage.setItem("fraction", fraction.toString());  // <-- Local storage!
+	    
+	    
+		available_video_quality = '';
+		var quality_list = player.getAvailableQualityLevels();
+		for (var prop in quality_list) {
+			  if (quality_list.hasOwnProperty(prop)) {
+				  available_video_quality = available_video_quality+quality_list[prop]+":";
+			  }
+		}
+		
+	    window.localStorage.removeItem("allquality");      // <-- Local storage!
+	    window.localStorage.setItem("allquality", available_video_quality);  // <-- Local storage!
+	    
 
 
     }
@@ -794,7 +864,11 @@ function bufferingStatusUpdate(){
     		"initialbufferingtime": elapsedinitialBufferingTime.toString(),
     		"abandonment": previouslyAbandonedDuetoBuffering.toString(),
     		"bufferflag": bufferingStatusUpdateValue,
-    		"avglatency": avglatency.toString()
+    		"avglatency": avglatency,
+    		"allquality": available_video_quality,
+    		"fraction": fraction.toString(),
+    		
+
     		/*
     		 * avglatency updated in contentscript.js page
     		 */
@@ -827,8 +901,11 @@ function bufferingStatusUpdate(){
         T_numofrebufferings = event.detail.numofrebufferings;
         T_bufferdurationwithtime = event.detail.bufferdurationwithtime;
         T_requestedresolutionswithtime = event.detail.requestedresolutionswithtime;
+        T_available_video_quality = event.detail.allquality;
+        T_fraction = event.detail.fraction;
 
-        
+
+
         
 //        console.log("YouSlow: LocalStatus referesh - "+T_localtime+"&"+T_hostname+"&"+T_city+"&"+T_region+"&"+T_country+"&"+T_loc+"&"+T_org+"&"+T_bufferduration+"&"+T_resolutionchanges+"&"+T_requestedresolutions+"&"+T_timelength+"&"+T_initialbufferingtime+"&"+T_abandonment+"&"+T_bufferflag+"&"+T_avglatency);
         
@@ -898,15 +975,17 @@ function reportWithPreviousData(){
 							+"&requestedresolutionswithtime="+T_requestedresolutionswithtime
 							+"&timelength="+T_timelength.toString()
 							+"&initialbufferingtime="+T_initialbufferingtime.toString()
-							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
-							+"&avglatency="+T_avglatency.toString();
-
+							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+T_fraction.toString()
+							+"&avglatency="+T_avglatency //Should get T_avglatency
+							+"&allquality="+T_available_video_quality
+	    					+"&version="+version;
 	    
-		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured7.php?"+(URLparameters);
+
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
-	    					
+//	    console.log("YouSlow: T_avglatency - "+T_avglatency);
+	    
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", videoInfoURL, true);
 		xhr.onreadystatechange = function() {
@@ -914,6 +993,7 @@ function reportWithPreviousData(){
 		  if (xhr.readyState == 4) {
 		    console.log("YouSlow: buffering events reported...");
 		    previouslyAbandonedDuetoBuffering = 0;
+		    initialData();
 		  }
 		}
 		xhr.send();
@@ -942,8 +1022,10 @@ function printout_all_T_paramters(){
 	+"&requestedresolutionswithtime="+T_requestedresolutionswithtime
 	+"&timelength="+T_timelength.toString()
 	+"&initialbufferingtime="+T_initialbufferingtime.toString()
-	+"&abandonment="+previouslyAbandonedDuetoBuffering.toString();
-	+"&avglatency="+T_avglatency.toString();
+	+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
+	+"&avglatency="+T_avglatency
+	+"&allquality="+T_available_video_quality
+	+"&fraction="+T_fraction;
 	
 	console.log("YouSlow: T_All - "+URLparameters);
 
@@ -967,7 +1049,9 @@ function printout_all_paramters(){
 	+"&timelength="+elapsedTime.toString()
 	+"&initialbufferingtime="+elapsedinitialBufferingTime.toString()
 	+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
-	+"&avglatency="+T_avglatency.toString();
+	+"&avglatency="+avglatency
+	+"&allquality="+available_video_quality
+	+"&fraction="+fraction;
 	
 	
 	console.log("YouSlow: All - "+URLparameters);
@@ -984,6 +1068,20 @@ function report(){
     var minutes = localTime.getMinutes()+'';
     var seconds = localTime.getSeconds()+'';    
     timeReport = year+"-"+month+"-"+date+" "+hours+":"+minutes+":"+seconds;
+    
+    
+    //Update available quality for the just closed video
+	available_video_quality = '';
+	var quality_list = player.getAvailableQualityLevels();
+	for (var prop in quality_list) {
+		  if (quality_list.hasOwnProperty(prop)) {
+			  available_video_quality = available_video_quality+quality_list[prop]+":";
+		  }
+	}
+	
+	
+    //Always when completely being watched video
+    previouslyAbandonedDuetoBuffering=0;
     
 	if(city != null){    
 		city = convert(city);
@@ -1019,13 +1117,16 @@ function report(){
 							+"&requestedresolutionswithtime="+requestedresolutionswithtime
 							+"&timelength="+elapsedTime.toString()
 							+"&initialbufferingtime="+elapsedinitialBufferingTime.toString()
-							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
-	    					+"&avglatency="+T_avglatency.toString();
+							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+fraction.toString()
+	    					+"&avglatency="+T_avglatency //Should get T_avglatency
+	    					+"&allquality="+available_video_quality
+	    					+"&version="+version;
 		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured7.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
-	    					
+//	    console.log("YouSlow: T_avglatency - "+T_avglatency);
+	    
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", videoInfoURL, true);
 		xhr.onreadystatechange = function() {

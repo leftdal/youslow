@@ -1,0 +1,6 @@
+
+For 1.1.7
+	- add fraction of play load (done)
+		- abandonmentflag:fraction (e.g., 2:0.75) 
+	- Initial buffering time (improved)
+	- Mysql version added (e.g., Chrome 1.1.7) (done)

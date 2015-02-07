@@ -48,7 +48,7 @@ document.addEventListener('BufferingStatus', function(e) {
 		        if (chrome.runtime.lastError) {
 		            console.warn(chrome.runtime.lastError.message);
 		        } else {
-//		        	console.log("YouSlow bufferStalling staus updated All: "+e.detail.localtime+"&"+e.detail.hostname+"&"+e.detail.city+"&"+e.detail.region+"&"+e.detail.country+"&"+e.detail.loc+"&"+e.detail.org+"&"+e.detail.bufferduration+"&"+e.detail.resolutionchanges+"&"+e.detail.requestedresolutions+"&"+e.detail.timelength+"&"+e.detail.initialbufferingtime+"&"+e.detail.abandonment+"&"+e.detail.bufferflag+"&"+e.detail.avglatency);
+//		        	console.log("YouSlow bufferStalling staus updated All: "+e.detail.localtime+"&"+e.detail.hostname+"&"+e.detail.city+"&"+e.detail.region+"&"+e.detail.country+"&"+e.detail.loc+"&"+e.detail.org+"&"+e.detail.bufferduration+"&"+e.detail.resolutionchanges+"&"+e.detail.requestedresolutions+"&"+e.detail.timelength+"&"+e.detail.initialbufferingtime+"&"+e.detail.abandonment+"&"+e.detail.bufferflag+"&"+e.detail.avglatency+"&"+e.detail.allquality+"&"+e.detail.fraction);
 		        }
 		    } catch (exception) {
 		        console.warn((new Date()).toJSON(), "exception.stack:", exception.stack);
