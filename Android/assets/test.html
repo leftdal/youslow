@@ -1,0 +1,61 @@
+<!DOCTYPE>
+<html>
+
+  <body>
+   
+    <!-- The <iframe> (and video player) will replace this <div> tag. -->
+    <div id="player"></div>
+
+    <script type = "text/javascript">
+      // This code loads the IFrame Player API code asynchronously.
+      var tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+     
+      // This function creates an <iframe> (and YouTube player)  after the API code downloads.
+      var player;      
+      var videoID = AndroidFunction.getVideoid();
+      function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+          height: '290',
+          width: '352',
+          videoId: videoID,
+          events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange,
+            'onPlaybackQualityChange': onPlayerPlaybackQualityChange
+          }
+        });
+        
+      }
+
+      // This function callbacks textview to show ready information
+      function onPlayerReady(event) {
+    	  var msgReady = "PlayerReady";
+     	  AndroidFunction.showToast(msgReady);
+      }
+ 
+      // This function callbacks textview to show state changing information
+      var stateChange = new Array();
+      var stateChangeTime = new Array();
+      function onPlayerStateChange(event) {
+    	 stateChange.push(event.data);
+    	 stateChangeTime.push(Date());
+    	 var stateInfo = "PlayerState:"+event.data;
+    	 AndroidFunction.showToast(stateInfo);
+      } 
+      
+      // This function callbacks textview to show playback quality changing information
+      var resolChange = new Array();
+      var resolChangeTime = new Array();
+ 	  function onPlayerPlaybackQualityChange(event){
+ 		  resolChange.push(event.data);
+ 		  resolChangeTime.push(Date());
+ 		  var qualityInfo = "PlaybackQuality:"+event.data;
+    	  AndroidFunction.showToast(qualityInfo);		  
+      }
+ 	  	  	    
+    </script>  
+  </body>
+</html>
