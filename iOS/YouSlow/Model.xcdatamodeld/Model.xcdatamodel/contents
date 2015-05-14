@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<model userDefinedModelVersionIdentifier="" type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="7549" systemVersion="14E17e" minimumToolsVersion="Xcode 4.3" macOSVersion="Automatic" iOSVersion="Automatic">
+    <entity name="Measurement" syncable="YES">
+        <attribute name="abandonment" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="allquality" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="bufferduration" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="bufferdurationwithtime" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="city" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="country" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="initialbufferingtime" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="loc" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="localtime" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="numofrebufferings" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="org" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="region" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="requestedresolutions" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="requestedresolutionswithtime" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="resolutionchanges" optional="YES" attributeType="String" syncable="YES"/>
+        <attribute name="timelength" optional="YES" attributeType="String" syncable="YES"/>
+    </entity>
+    <elements>
+        <element name="Measurement" positionX="-54" positionY="-9" width="128" height="285"/>
+    </elements>
+</model>

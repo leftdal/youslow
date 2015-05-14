@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>IDESourceControlProjectFavoriteDictionaryKey</key>
+	<false/>
+	<key>IDESourceControlProjectIdentifier</key>
+	<string>19BBFF89-098C-44E1-A21B-4A07B5D4B840</string>
+	<key>IDESourceControlProjectName</key>
+	<string>YouSlow</string>
+	<key>IDESourceControlProjectOriginsDictionary</key>
+	<dict>
+		<key>9C2EDB8E6DB281D12D052BEBA6989170A04CA749</key>
+		<string>https://github.com/to0/VideoPlayerQoS.git</string>
+	</dict>
+	<key>IDESourceControlProjectPath</key>
+	<string>YouSlow.xcodeproj</string>
+	<key>IDESourceControlProjectRelativeInstallPathDictionary</key>
+	<dict>
+		<key>9C2EDB8E6DB281D12D052BEBA6989170A04CA749</key>
+		<string>../..</string>
+	</dict>
+	<key>IDESourceControlProjectURL</key>
+	<string>https://github.com/to0/VideoPlayerQoS.git</string>
+	<key>IDESourceControlProjectVersion</key>
+	<integer>111</integer>
+	<key>IDESourceControlProjectWCCIdentifier</key>
+	<string>9C2EDB8E6DB281D12D052BEBA6989170A04CA749</string>
+	<key>IDESourceControlProjectWCConfigurations</key>
+	<array>
+		<dict>
+			<key>IDESourceControlRepositoryExtensionIdentifierKey</key>
+			<string>public.vcs.git</string>
+			<key>IDESourceControlWCCIdentifierKey</key>
+			<string>9C2EDB8E6DB281D12D052BEBA6989170A04CA749</string>
+			<key>IDESourceControlWCCName</key>
+			<string>VideoPlayerQoS</string>
+		</dict>
+	</array>
+</dict>
+</plist>
