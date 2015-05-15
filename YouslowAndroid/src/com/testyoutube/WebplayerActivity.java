@@ -22,6 +22,8 @@ import com.testyoutube.R;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -30,6 +32,11 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler; 
+import android.text.Spannable;
+import android.text.SpannableString;
+import android.text.method.ScrollingMovementMethod;
+import android.text.style.ForegroundColorSpan;
+import android.text.style.StyleSpan;
 import android.view.KeyEvent;
 import android.view.View;
 import android.webkit.ConsoleMessage;
@@ -82,10 +89,9 @@ public class WebplayerActivity extends Activity {
     protected String allquality = "";
     private Boolean windowFlag; // Flag is true if we are in base web view, false if in full screen mode	
     
-    // Result show in text view
-    private String RebufPrint = "";
-    private String ResolPrint = "";
-    private String ISPPrint = "";  
+    // Result show in text view, only use in demo
+    // private String RebufPrint = "";
+    // private String ResolPrint = "";
     
 	
     @SuppressLint("SetJavaScriptEnabled")
@@ -99,7 +105,14 @@ public class WebplayerActivity extends Activity {
 		linearLayout = (LinearLayout)findViewById(R.id.linearlayout);
 		subLayout = (LinearLayout)findViewById(R.id.linear1);
 		textView = (TextView)findViewById(R.id.textView);
-        
+		 
+		textView.setMovementMethod(new ScrollingMovementMethod());
+		// Developer key
+	    final String KEY = "AIzaSyBx8NE1C1VFreZgI4CP4tf2EeTx6TbHtDM";
+	    // Setting content to textView
+		new HttpAsyncTask().execute("https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&textFormat=plainText&videoId="+webVideoId+"&key="+KEY);
+
+		
 		// Getting location information: latitude and longitude
         locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         boolean isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
@@ -149,8 +162,9 @@ public class WebplayerActivity extends Activity {
 		}
 		
 		// Using third party API to get ISP information
-        new HttpAsyncTask().execute("http://ip-api.com/json");
-    }
+		new HttpAsyncTask().execute("http://ip-api.com/line");
+		
+}
     
     // Close the video when return
     @Override
@@ -245,12 +259,12 @@ public class WebplayerActivity extends Activity {
 		 
 		 String url = "http://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?";
 		 message += "localtime=" + format.format(localtime);
-		 message += "&hostname=" + "alice";
-		 message += "&city=" + cityname.replace(" ", "");
-		 message += "&region=" + regionname.replace(" ", "");
-		 message += "&country=" + countryname.replace(" ", "");
+		 message += "&hostname=" + "NoHostname";
+		 message += "&city=" + cityname;
+		 message += "&region=" + regionname;
+		 message += "&country=" + countryname;
 		 message += "&loc=" + lat + "," + lon;
-		 message += "&org=" + org.replace(" ", "");
+		 message += "&org=" + org;
 		 message += "&numofrebufferings=" + countbuffer;
 		 message += "&bufferduration=" + totalBuffertime;
 		 message += "&bufferdurationwithtime=" + countbufferwithtime;
@@ -379,11 +393,13 @@ public class WebplayerActivity extends Activity {
 	            		 abandonment = 0;
 	            	 }
 	            	 
+	            	// Result show in text view, only use in demo
+	            	/*
 	            	 String printinfo ="Num of rebufferings: " + countbuffer+"\n";
 	            	 printinfo +="Rebuffering duration: " + totalBuffertime+"\n";	            	 
-
 	            	 RebufPrint = printinfo;
-	                 textView.setText(RebufPrint+ResolPrint+ISPPrint);	
+	                 textView.setText(RebufPrint+ResolPrint); 
+	                */
 	                 
 	            	 lastreturnedstate = Integer.parseInt(msgToast);
 	             }
@@ -402,9 +418,12 @@ public class WebplayerActivity extends Activity {
 	            	 totalResolchange += msgToast+":";
 	            	 countresolwithtime += msgTime+"?"+msgToast+":";
 	            	 
+	            	// Result show in text view, only use in demo
+	            	/*
 	            	 String printinfo = "Resolution changes: " + totalResolchange.substring(0, totalResolchange.length()-1)+"\n";            	 
 	            	 ResolPrint = printinfo;	            	 
-	                 textView.setText(RebufPrint+ResolPrint+ISPPrint);	 	            	        
+	                 textView.setText(RebufPrint+ResolPrint);	 
+	                */	            	        
 	             }
 	         });
 	    }
@@ -446,11 +465,28 @@ public class WebplayerActivity extends Activity {
     }
  
     private static String convertInputStreamToString(InputStream inputStream) throws IOException{
-        BufferedReader bufferedReader = new BufferedReader( new InputStreamReader(inputStream));
+        BufferedReader br = new BufferedReader( new InputStreamReader(inputStream));
         String line = "";
         String result = "";
-        while((line = bufferedReader.readLine()) != null){        	
-        	result += line;
+        
+        line = br.readLine();
+        if(line.equals("success")){
+        	result = "ipapi";
+        	br.readLine();
+        	result += " " + br.readLine().replace(" ", "");
+        	result += " " + br.readLine().replace(" ", "");
+        	br.readLine();
+        	result += " " + br.readLine().replace(" ", "");
+        	br.readLine(); br.readLine();
+        	br.readLine(); br.readLine(); 
+        	br.readLine(); br.readLine();
+        	result += " " + br.readLine().replace(" ", "");        	
+        }        
+        else{
+        	result = line;
+        	while((line = br.readLine()) != null){        	
+        		result += " "+ line;
+        	}
         }           
  
         inputStream.close();
@@ -479,92 +515,80 @@ public class WebplayerActivity extends Activity {
         @Override
         protected void onPostExecute(String result) {
                         
-            String ShowResult ="";            
-            String city = "";
-            String region = "";
-            String country = "";           
-            String as = "";
-            String status = "";
-            
-            // Checking for http get result to server
-            if(result.equals("200 OK")){
-            	return;
-            }
-            
+            String Head ="";   
+                     
             Scanner sc = new Scanner(result);  
-            if(sc.next().equals("Not")){
+            Head = sc.next();
+            if(Head.equals("ipapi")){
+    	    	countryname = sc.next();
+    	    	regionname = sc.next();
+            	cityname = sc.next();
+    	    	org = sc.next();
             	sc.close();
             	return;
             }
+            
+            if(Head.equals("Not")){
+            	sc.close();
+            	return;
+            }
+            
             sc.close();
             
-            // Analyzing result from ISP API
+            // Analyzing result from youtube comments api
+            result = result.replace("\"", "");
+            result = result.replace("\\n", " ");
             Scanner src = new Scanner(result);  
-    	    src.useDelimiter(" *\" *");
-
-    	    boolean flag = false;
+    	   
     	    String splitter;
-    	    String[] attribute= new String[20], value = new String[20];
-    	     
+    	    String Temp;
+    	    String[] author= new String[20], comment = new String[20];
+    	   
+    	    // Extracting authors and comments
     	    int n = 0;
-    	    while (src.hasNext()) {	  
+    	    while (src.hasNext()) {	
     	    	splitter = src.next();
-    	    	if( splitter.equals("{")){
-    	    		flag = true;
-    	    		attribute[n] = src.next();
-    	    		src.next();
-    	    		value[n] = src.next(); 
-    	    		n++;
-    	    	}	    
-    	    	else if(splitter.equals("}")){
-    	    		break;
+    	    	if(splitter.equals("textDisplay:")){
+    	    		Temp =  src.next(); 
+    	    		while(!Temp.substring(Temp.length()-1, Temp.length()).equals(",")){
+    	    			Temp += " " + src.next();
+    	    		}
+    	    		if(Temp.length()>7){
+        	    		comment[n] = Temp.substring(0, Temp.length()-7);
+    	    		}
+    	    		else{
+        	    		comment[n] = Temp.substring(0, Temp.length()-1);
+    	    		}
+    	    		
     	    	}
-    	    	
-    	    	if(flag && splitter.equals(",")){	    		
-    	    		attribute[n] = src.next();
-    	    		src.next();
-    	    		value[n] = src.next(); 
+    	    	if(splitter.equals("authorDisplayName:")){
+    	    		Temp =  src.next(); 
+    	    		while(!Temp.substring(Temp.length()-1, Temp.length()).equals(",")){
+    	    			Temp += " " + src.next();
+    	    		}
+    	    		author[n] = Temp.substring(0, Temp.length()-1);
     	    		n++;
-    	    	}    	    	
+    	    	}
     	    }
     	    src.close();
     	    
-    	    // Extracting parameters
-    	    for(int i = 0; i<n; i++){
-    	    	if(attribute[i].equals("city")){
-    	    		city = value[i];
-    	    	}
-    	    	
-    	    	if(attribute[i].equals("region")){
-    	    		region = value[i];
-    	    	}
-    	    	
-    	    	if(attribute[i].equals("countryCode")){
-    	    		country = value[i];
-    	    	}    	    	     	
-    	    	
-    	    	if(attribute[i].equals("as")){
-    	    		as = value[i];
-    	    	}
-    	    	
-    	    	if(attribute[i].equals("status")){
-    	    		status = value[i];
-    	    	}
-    	    }
+    	    // Setting comments to textview
+    	    Spannable CommentTitle = new SpannableString("COMMENTS\n");    
+    	    CommentTitle.setSpan(new ForegroundColorSpan(Color.rgb(170, 170, 220)), 0, CommentTitle.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+    	    CommentTitle.setSpan(new StyleSpan(Typeface.BOLD), 0, CommentTitle.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+    	    textView.setText(CommentTitle);
+    	   
     	    
-    	    if(status.equals("success")){
-    	    	ShowResult = city +" "+ region +" "+ country +" "+ as;
-    	    	cityname = city;
-    	    	countryname = country;
-    	    	regionname = region;
-    	    	org = as;
-    	    	
-    	    	ISPPrint = "ISP: " + ShowResult;
-    	    	textView.setText(ISPPrint); 
-    	    }
-    	    else{
-    	    	ShowResult = result;
-    	    }
+    	   	for(int i = 0; i < n; i++){       		
+        	    Spannable Author = new SpannableString(author[i]+":\n");    
+        	    Author.setSpan(new ForegroundColorSpan(Color.rgb(100, 180, 230)), 0, Author.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        	    Author.setSpan(new StyleSpan(Typeface.BOLD), 0, Author.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        	    textView.append(Author);
+        	    
+        	    Spannable Comment = new SpannableString(comment[i]+"\n\n");    
+        	    Comment.setSpan(new ForegroundColorSpan(Color.BLACK), 0, Comment.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
+        	    textView.append(Comment);    	   		
+    	   	}
     	    
     	    return;
             
