@@ -4,52 +4,108 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.achartengine.GraphicalView;
 
 import android.app.ActionBar.LayoutParams;
 import android.app.Activity;
 import android.content.Context;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.widget.LinearLayout;
+import android.widget.ScrollView;
 
 public class PiechartActivity extends Activity  {
 	
 	// For different ISPs, need to create different layouts and views
-	private LinearLayout pie1;	
-	private LinearLayout pie2;
-	private LinearLayout pie3;
-	private LinearLayout pie4;
-	private GraphicalView piechart1;
-	private GraphicalView piechart2;
-	private GraphicalView piechart3;
-	private GraphicalView piechart4;
-	
+	private Map<String, String> map = new HashMap<String, String>();
 	
 	@Override
     public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);  
-        setContentView(R.layout.activity_piechart);
-        
+        super.onCreate(savedInstanceState);          
         getActionBar().setTitle("Played bitrates for different ISPs");
+                
+        LinearLayout parent=new LinearLayout(this); 
+        parent.setOrientation(LinearLayout.VERTICAL); 
         
-        pie1 = (LinearLayout) findViewById(R.id.piechart1);
-        pie2 = (LinearLayout) findViewById(R.id.piechart2);
-        pie3 = (LinearLayout) findViewById(R.id.piechart3);
-        pie4 = (LinearLayout) findViewById(R.id.piechart4);        
+        getISP(this);
+		Set<String> keyset = map.keySet();
+		String[] ISP = keyset.toArray(new String[keyset.size()]);
+		
+        for (int i=0; i<ISP.length; i++){
+        	if(ISP[i].equals("")){
+        		continue;
+        	}
+            LinearLayout layout = new LinearLayout(this);
+            layout.setLayoutParams(new LinearLayout.LayoutParams(LayoutParams.MATCH_PARENT, 600));    
+            layout.setBottom(30);
+            layout.setOrientation(LinearLayout.VERTICAL);
+            
+            GraphicalView piechart = new PieChart(ISP[i], readInfo(this, ISP[i])).execute(this); 
+            layout.addView(piechart, new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));               
+            parent.addView(layout);
+        }
+         
+        ScrollView scroll = new ScrollView(this);
+        scroll.setBackgroundColor(Color.BLACK);
+        scroll.setLayoutParams(new LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.WRAP_CONTENT));
+        scroll.addView(parent);
         
-        // The isp name may not be correct.
-        piechart1 = new PieChart("4G: VERIZON", readInfo(this, "verizon")).execute(this); 
-        piechart2 = new PieChart("WIFI: VERIZON", readInfo(this, "verizon")).execute(this); 
-        piechart3 = new PieChart("WIFI: COMCAST", readInfo(this, "Comcast")).execute(this); 
-        piechart4 = new PieChart("WIFI: COLUMBIA", readInfo(this, "AS14ColumbiaUniversity")).execute(this);
-        
-        pie1.addView(piechart1,new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
-        pie2.addView(piechart2,new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
-        pie3.addView(piechart3,new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
-        pie4.addView(piechart4,new LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT));
-    	
+        setContentView(scroll);      	
+	}
+	
+	private void getISP(Context context){
+		String[] History = new String[20];
+		    
+		int n = 0; // Count number of records
+        try {
+     	    FileInputStream inStream = context.openFileInput("recentrecords.txt");
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+            byte[] buffer = new byte[1024];
+            int length = -1;
+            while((length=inStream.read(buffer)) != -1){
+                stream.write(buffer,0,length);
+            } 
+            
+            String records = stream.toString();
+            stream.close();
+            inStream.close();   
+            
+            Scanner src = new Scanner(records); 
+    	    src.useDelimiter("/");
+    	    while(src.hasNext()){ 
+    	    	History[n] = src.next();
+    	   	   	n++;
+            }
+   	        src.close();            
+   	        
+			String label;
+			String data; 			
+			
+			String ispname = "";
+			
+			// Collecting isp kinds
+			for (int h=0; h<n; h++){
+			 	Scanner sc = new Scanner(History[h]);  
+			    sc.useDelimiter("&|=");
+				while(sc.hasNext()){
+					label = sc.next(); 
+					data = sc.next();
+					if(label.equals("org")){
+						ispname = data;					    
+					    map.put(ispname, ispname);
+					}
+			    }
+			    sc.close();		
+		    }	
+        }catch (FileNotFoundException e){
+        }
+        catch (IOException e){
+        }
 	}
 	
 	// Getting information from data we stored for different ISPs

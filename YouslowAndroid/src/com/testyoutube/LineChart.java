@@ -4,7 +4,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.Set;
 
 import org.achartengine.ChartFactory;
 import org.achartengine.chart.PointStyle;
@@ -13,6 +16,12 @@ import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
  
+
+
+
+
+
+
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;  
@@ -25,12 +34,11 @@ public class LineChart {
 	};
 	
 	// For each ISP we need different double arrays
-	private String[] ISP = new String[]{"4G: Verizon", "WiFi: Comcast", "WiFi: Columbia", "WiFi: Verizon"};
-	private double[] fourg = new double[12];
-	private double[] wifiCom = new double[12];
-	private double[] wifiColu = new double[12];
-	private double[] wifiVer = new double[12];
+	private Map<String, int[]> map = new HashMap<String, int[]>();
 	private int[] xlabel= {1,2,3,4,5,6,7,8,9,10,11,12};
+	private int[] timelengthbymonth = new int[12];
+	private int[] colorlist = new int[]{Color.BLUE, Color.RED, Color.CYAN, Color.GRAY, Color.GREEN, Color.MAGENTA};
+	private PointStyle[] pointstylelist = new PointStyle[]{PointStyle.CIRCLE, PointStyle.DIAMOND, PointStyle.SQUARE, PointStyle.TRIANGLE, PointStyle.POINT};
 	
 	public LineChart(){
 		  
@@ -39,68 +47,73 @@ public class LineChart {
 	public Intent execute(Context context){   
 		
 		readInfo(context);		
-  
-		XYSeries[] SingleSeries = new XYSeries[ISP.length];
+   
+		XYMultipleSeriesRenderer multiRenderer = customizeMultipleRender();
+		Set<String> keyset = map.keySet();
+		String[] ISP = keyset.toArray(new String[keyset.size()]);
+		
+        // Adding data
+        XYSeries[] SingleSeries = new XYSeries[ISP.length];
 		for(int i = 0; i< ISP.length; i++){
 			SingleSeries[i] = new XYSeries(ISP[i]);			 
 		} 
         
-        // Adding data to Series
-        for(int i=0;i < xlabel.length;i++){
-        	SingleSeries[0].add(xlabel[i], fourg[i]);
-        	SingleSeries[1].add(xlabel[i],wifiCom[i]);
-        	SingleSeries[2].add(xlabel[i],wifiColu[i]);
-        	SingleSeries[3].add(xlabel[i],wifiVer[i]);
+        for(int i=0; i < xlabel.length; i++){
+        	for(int j = 0; j < ISP.length; j++){
+        		int[] data = map.get(ISP[j]);
+        		if (timelengthbymonth[i] == 0){
+        			SingleSeries[j].add(xlabel[i], 0);
+        		}
+        		else{
+        			SingleSeries[j].add(xlabel[i], (double)data[i]/timelengthbymonth[i]);
+        		}
+    		} 
         }
  
-        // Creating a dataset to hold each series
         XYMultipleSeriesDataset dataset = new XYMultipleSeriesDataset(); 
         
         for(int i = 0; i< ISP.length; i++){
-        	dataset.addSeries(SingleSeries[i]);			 
+        	// Creating a dataset for each series
+        	dataset.addSeries(SingleSeries[i]);	
+        	
+        	// Building XYSeriesRenderer for each isp
+        	XYSeriesRenderer renderer = buildXYSeriesRender(colorlist[i%colorlist.length], pointstylelist[i%pointstylelist.length]);
+        	multiRenderer.addSeriesRenderer(renderer);
 		} 
-           
-        // Building XYSeriesRenderer for each isp
-        XYSeriesRenderer fourGRenderer = buildXYSeriesRender(Color.RED, PointStyle.CIRCLE);   
-        XYSeriesRenderer wifiComRenderer = buildXYSeriesRender(Color.BLUE, PointStyle.DIAMOND); 
-        XYSeriesRenderer wifiColuRenderer = buildXYSeriesRender(Color.CYAN, PointStyle.SQUARE); 
-        XYSeriesRenderer wifiVerRenderer = buildXYSeriesRender(Color.MAGENTA, PointStyle.TRIANGLE); 
- 
-        // Creating a XYMultipleSeriesRenderer to customize the whole chart
-        XYMultipleSeriesRenderer multiRenderer = new XYMultipleSeriesRenderer();
-        multiRenderer.setXLabels(0);  
-        multiRenderer.setBackgroundColor(Color.BLACK);
-        multiRenderer.setAxesColor(Color.WHITE);
-        multiRenderer.setGridColor(Color.WHITE);
-        multiRenderer.setShowGrid(true);
-        multiRenderer.setApplyBackgroundColor(true);
-        multiRenderer.setXTitle("MONTH");
-        multiRenderer.setYTitle("AVERAGE REBUFFERING RATIO(%)");
-        
-        // Changing font size and point size
-        multiRenderer.setAxisTitleTextSize(26); 
-        multiRenderer.setLabelsTextSize(22);
-        multiRenderer.setLegendTextSize(26);
-        multiRenderer.setLegendHeight(80);
-        multiRenderer.setPointSize(8);
-        
-        // Setting margins: above, left, below, right
-        multiRenderer.setMargins(new int[] {0, 50, 150, 20});
-        
-        for(int i=0;i < xlabel.length;i++){
-            multiRenderer.addXTextLabel(i+1, mMonth[i]);
-        }
-
-        multiRenderer.addSeriesRenderer(fourGRenderer);
-        multiRenderer.addSeriesRenderer(wifiComRenderer);
-        multiRenderer.addSeriesRenderer(wifiColuRenderer);
-        multiRenderer.addSeriesRenderer(wifiVerRenderer);
  
         Intent intent = ChartFactory.getLineChartIntent(context, dataset, multiRenderer,
         		"Average rebuffering ratio(%)");
         return intent;
     }
        
+	protected XYMultipleSeriesRenderer customizeMultipleRender(){
+		// Creating a XYMultipleSeriesRenderer to customize the whole chart
+        XYMultipleSeriesRenderer renderer = new XYMultipleSeriesRenderer();
+        renderer.setXLabels(0);  
+        renderer.setBackgroundColor(Color.BLACK);
+        renderer.setAxesColor(Color.WHITE);
+        renderer.setGridColor(Color.WHITE);
+        renderer.setShowGrid(true);
+        renderer.setApplyBackgroundColor(true);
+        renderer.setXTitle("MONTH");
+        renderer.setYTitle("AVERAGE REBUFFERING RATIO(%)");
+        
+        // Changing font size and point size
+        renderer.setAxisTitleTextSize(26); 
+        renderer.setLabelsTextSize(22);
+        renderer.setLegendTextSize(26);
+        renderer.setLegendHeight(80);
+        renderer.setPointSize(8);
+        
+        // Setting margins: above, left, below, right
+        renderer.setMargins(new int[] {0, 50, 150, 20});
+        
+        for(int i=0;i < xlabel.length;i++){
+        	renderer.addXTextLabel(i+1, mMonth[i]);
+        }
+        return renderer;
+	}
+	
 	protected XYSeriesRenderer buildXYSeriesRender(int color, PointStyle style){
 		XYSeriesRenderer renderer = new XYSeriesRenderer();
 		renderer.setColor(color);
@@ -125,7 +138,7 @@ public class LineChart {
             ByteArrayOutputStream stream=new ByteArrayOutputStream();
             byte[] buffer=new byte[1024];
             int length = -1;
-            while((length=inStream.read(buffer))!=-1)   {
+            while((length=inStream.read(buffer))!=-1) {
                 stream.write(buffer,0,length);
             } 
             
@@ -137,7 +150,7 @@ public class LineChart {
     	    src.useDelimiter("/");
     	    while(src.hasNext()){ 
     	    	History[n] = src.next();
-    	   	   n++;
+    	   	    n++;
             }
    	        src.close();            
    	        
@@ -145,9 +158,8 @@ public class LineChart {
 			String data;
 			String ispname="";
 			 
-			int[] bufferbymonth = new int[12];
-			int[] timelengthbymonth = new int[12];
 			int month = 0;
+			int bufferformonth = 0;
 			 
 			// Extracting and calculating data
 			for (int h=0; h<n; h++){
@@ -161,7 +173,7 @@ public class LineChart {
 						month = Integer.parseInt(data.substring(5,7))-1;
 					}
 					else if(label.equals("bufferduration")){
-						bufferbymonth[month] += Integer.parseInt(data); 
+						bufferformonth = Integer.parseInt(data); 
 					}
 					else if(label.equals("timelength")){
 						timelengthbymonth[month] += Integer.parseInt(data);
@@ -172,53 +184,18 @@ public class LineChart {
 			    }
 			    sc.close();
 			    
-			    // The ispname may not be correct. 
-			    if(ispname.equals("verizon")){
-			    	// Adding data to verizon array
-			    	for(int i = 0; i < 12; i++){
-			    		if(timelengthbymonth[i]==0){
-			    			wifiVer[i]+=0;
-			    		}
-			    		else{
-			    			wifiVer[i] = (double)bufferbymonth[i]/timelengthbymonth[i];
-			    		}
-			    	}
+			    int[] bufferrecord;
+			    if(map.get(ispname)==null){
+			    	bufferrecord = new int[12];
 			    }
-			    else if(ispname.equals("AS14ColumbiaUniversity")){
-			    	// Adding data to columbia array
-			    	for(int i = 0; i <12; i++){
-			    		if(timelengthbymonth[i]==0){
-			    			wifiColu[i]+=0;
-			    		}
-			    		else{
-			    			wifiColu[i] = (double)bufferbymonth[i]/timelengthbymonth[i];
-			    		}
-			    	}
+			    else{
+			    	bufferrecord = map.get(ispname);
 			    }
-			    else if(ispname.equals("Comcast")){
-			    	// Adding data to comcast array
-			    	for(int i = 0; i <12; i++){
-			    		if(timelengthbymonth[i]==0){
-			    			wifiCom[i]+=0;
-			    		}
-			    		else{
-			    			wifiCom[i] = (double)bufferbymonth[i]/timelengthbymonth[i];
-			    		}
-			    	}
-			    }
-			    else if(ispname.equals("AT&T")){
-			    	// Adding data to 4g array
-			    	for(int i = 0; i <12; i++){
-			    		if(timelengthbymonth[i]==0){
-			    			fourg[i]+=0;
-			    		}
-			    		else{
-			    			fourg[i] = (double)bufferbymonth[i]/timelengthbymonth[i];
-			    		}
-			    	}
-			    }
+			    bufferrecord[month] += bufferformonth;
+			    map.put(ispname, bufferrecord);
 		    }		
-             
+           
+			map.remove("");
         } catch (FileNotFoundException e) {
             return;
         }
