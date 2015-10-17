@@ -19,6 +19,8 @@ var startTime=null;
 var endTime=null;
 var elapsedTime=0;
 
+var isMainVideoStarted=false;
+
 var initialBufferingStartTime=null;
 var initialBufferingEndTime=null;
 var elapsedinitialBufferingTime=0;
@@ -28,7 +30,18 @@ var bufferingStatusUpdateValue="";
 var previouslyAbandonedDuetoBuffering = 0;
 var avglatency="";
 var timeReport =null;
+var AllAdsLength="";
+var isPlayingAds=false;
+var isPlayingMainVideo=false;
 
+var AdsStartTime=0;
+var AdsEndTime=0;
+
+
+var resultsFromContentScript="";
+
+
+var T_AllAdsLength="";
 var T_localtime=null;
 var T_hostname=null;
 var T_city=null;
@@ -48,6 +61,7 @@ var T_avglatency=null;
 var video_url=null;
 var current_video_url=null;
 
+
 var requestedresolutionswithtime='';
 var numofrebufferings=0;
 var bufferdurationwithtime='';
@@ -63,7 +77,7 @@ var fraction=0;
 var T_fraction=0;
 
 
-var version='Chrome 1.1.7';
+var version='Chrome 1.1.8_test';
 
 function onYouTubePlayerReady(playerId) {
 	
@@ -119,7 +133,8 @@ function onYouTubePlayerReady(playerId) {
 	
 	if(initialState==-1){
 		isInitialBuffering = true;
-		initialBufferingStartTime = new Date();		
+		initialBufferingStartTime = new Date();
+		elapsedTime=0;
 	}
 	
 	
@@ -157,10 +172,17 @@ function onYouTubePlayerReady(playerId) {
 			elapsedTime = elapsedTime + seconds;
 			startTime = null;
 		}
-		
 
-		
+//		console.log("initialState: "+initialState);
+
         if(initialState==1){
+        	
+        	//Initial elapsedTime
+        	if(!isMainVideoStarted){
+        		isMainVideoStarted=true;
+        		elapsedTime=0;
+        	}
+        	
         	startTime = new Date();
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
 			bufferingStatusUpdate();
@@ -430,7 +452,11 @@ function state() {
 		
 	}else if(currentState==0){
 		
-		if(bufferingDuration>0){
+		
+		/*
+		 * Report only when elapsedTime>0
+		 */
+		if(elapsedTime>0){
 			
 			if(startTime != null){
 				endTime = new Date();
@@ -461,10 +487,11 @@ function state() {
 			requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
 			numofrebufferings=0;
 			bufferdurationwithtime='';
-			
 			//BufferStalling status update
 			bufferingStatusUpdateValue = "DOWN(END)";
 			bufferingStatusUpdate();
+			AllAdsLength="";
+			isMainVideoStarted=false;
 			
 		}
 		
@@ -509,6 +536,7 @@ function state() {
 			bufferdurationwithtime='';
 			avglatency='';
 			available_video_quality='';
+			AllAdsLength="";
 
 		}
 		
@@ -530,11 +558,16 @@ function state() {
 			startTime = new Date();
 						
 			if(isInitialBuffering){
+				//We reset elapsedTime, since it is not played yet
+				elapsedTime=0;
+				
 				isInitialBuffering = false;
 				initialBufferingEndTime = new Date();
 				var timeDiff = initialBufferingEndTime - initialBufferingStartTime;
 				elapsedinitialBufferingTime = timeDiff;
 				console.log("YouSlow: elapsedinitialBufferingTime: "+elapsedinitialBufferingTime);
+				
+				
 			}
 			
 			if(isBuffering){
@@ -610,7 +643,10 @@ function initialData(){
 	bufferdurationwithtime='';
 	available_video_quality='';
 	fraction=0;
-	
+	isPlayingAds=false;
+	isPlayingMainVideo=false;
+	AllAdsLength="";
+	isMainVideoStarted=false;
 }
 
 
@@ -635,6 +671,7 @@ function initialData_T(){
 	T_bufferdurationwithtime='';
 	T_available_video_quality='';
 	T_fraction=0;
+	T_AllAdsLength="";
 	
 }
 
@@ -682,6 +719,12 @@ function call_data_for_video_url_change_event(){
 	 */
 	if(!isGood){
 		console.log('No good at call_data_for_video_url_change_event');
+		
+		/*
+		 * Initialized all data
+		 */
+		initialData();
+		
 		available_video_quality = '';
 		var quality_list = player.getAvailableQualityLevels();
 		for (var prop in quality_list) {
@@ -712,8 +755,7 @@ function call_data_for_video_url_change_event(){
 							+"&requestedresolutionswithtime="+window.localStorage.getItem("requestedresolutionswithtime")
 							+"&timelength="+window.localStorage.getItem("timelength")
 							+"&initialbufferingtime="+window.localStorage.getItem("initialbufferingtime")
-							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
-							+":"+window.localStorage.getItem("fraction")
+							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+window.localStorage.getItem("fraction")
 							+"&avglatency="+T_avglatency //Should get T_avglatency
 							+"&allquality="+window.localStorage.getItem("allquality")
 	    					+"&version="+version;
@@ -773,6 +815,7 @@ function bufferingStatusUpdate(){
     
     if(elapsedTime>4){
 
+    	
     	window.localStorage.removeItem("initialbufferingtime");      // <-- Local storage!
         window.localStorage.setItem("initialbufferingtime", elapsedinitialBufferingTime.toString());  // <-- Local storage!
 
@@ -830,6 +873,11 @@ function bufferingStatusUpdate(){
 	    window.localStorage.removeItem("fraction");      // <-- Local storage!
 	    window.localStorage.setItem("fraction", fraction.toString());  // <-- Local storage!
 	    
+	    window.localStorage.removeItem("AllAdsLength");      // <-- Local storage!
+	    window.localStorage.setItem("AllAdsLength", AllAdsLength);  // <-- Local storage!
+	    
+	    	    
+	    
 	    
 		available_video_quality = '';
 		var quality_list = player.getAvailableQualityLevels();
@@ -867,6 +915,7 @@ function bufferingStatusUpdate(){
     		"avglatency": avglatency,
     		"allquality": available_video_quality,
     		"fraction": fraction.toString(),
+    		"AllAdsLength": AllAdsLength
     		
 
     		/*
@@ -880,7 +929,66 @@ function bufferingStatusUpdate(){
 	}));
 	
 	
+	
+	// listen for getFromContentScript
+	document.addEventListener('getFromContentScript', function(event) {
+	    var dataFromPage = event.detail;
+	    resultsFromContentScript=dataFromPage;
+	    
+	    
+	    var tmp_split=resultsFromContentScript.split("&");
+	    var tmp_avglatency=tmp_split[0];
+	    var tmp_isvideoAds=tmp_split[1];
 
+	    avglatency=tmp_avglatency;
+
+	    if(tmp_isvideoAds=="true"){
+	    	if(!isPlayingAds){
+	    		AdsStartTime = new Date().getTime() / 1000;
+	    		var CurrentStartTime=elapsedTime.toString();
+	    		
+	    		/*
+	    		 * There is the case where isInitialBuffering ON, but elapsedTime > 0
+	    		 * We found when the user contrinously watch the videos after the main video ends
+	    		 */
+	    		if(isInitialBuffering){
+	    			CurrentStartTime="0";
+	    		}
+	    			
+	    		AllAdsLength = AllAdsLength+CurrentStartTime+"?";
+//	    		console.log("UPDATE-AdsStartTime: "+AdsStartTime);
+//	    		console.log("UPDATE-AllAdsStart: "+CurrentStartTime);
+//	    		console.log("UPDATE-initialBufferingState: "+isInitialBuffering);
+	    		
+	    	}
+	    	isPlayingAds=true;
+	    	isPlayingMainVideo=false;
+	    }else{
+	    	if(!isPlayingMainVideo && isPlayingAds){
+	    		AdsEndTime = new Date().getTime() / 1000;
+	    		var tmp_videoAdsLength=AdsEndTime-AdsStartTime;
+	    		tmp_videoAdsLength=tmp_videoAdsLength+5; // We add additional 5sec of Ads since we skipped the first 5sec.
+	    		AllAdsLength = AllAdsLength+tmp_videoAdsLength.toString()+":"; // save video ads length (Ads start time?duration:)
+	    		isPlayingAds=false;
+//	    		console.log("UPDATE-AdsEndTime: "+AdsEndTime);
+//	    		console.log("UPDATE-tmp_videoAdsLength: "+tmp_videoAdsLength);
+	    		console.log("UPDATE-AllAdsLength: "+AllAdsLength);
+	    	}
+    		isPlayingMainVideo=true;
+	    }
+	    
+//	    console.log("UPDATE-resultsFromContentScript: "+resultsFromContentScript);
+//		console.log("UPDATE-tmp_isvideoAds: "+tmp_isvideoAds);
+//		console.log("UPDATE-isPlayingAds: "+isPlayingAds);
+//		console.log("UPDATE-isPlayingMainVideo: "+isPlayingMainVideo);
+//		console.log("UPDATE-AllAdsLength: "+AllAdsLength);
+
+	    
+	});
+	
+	
+	
+	// Only call when refresh the webpage
 	document.addEventListener('fetchResponse', function respListener(event) {
 		
 		T_localtime = event.detail.localtime;	
@@ -903,11 +1011,17 @@ function bufferingStatusUpdate(){
         T_requestedresolutionswithtime = event.detail.requestedresolutionswithtime;
         T_available_video_quality = event.detail.allquality;
         T_fraction = event.detail.fraction;
+        T_AllAdsLength=event.detail.AllAdsLength;
 
-
+//        console.log("YouSlow: LocalStatus referesh - "+T_localtime+"&"+T_hostname+"&"+T_city+"&"+T_region+"&"+T_country+"&"+T_loc+"&"+T_org+"&"+T_bufferduration+"&"+T_resolutionchanges+"&"+T_requestedresolutions+"&"+T_timelength+"&"+T_initialbufferingtime+"&"+T_abandonment+"&"+T_bufferflag+"&"+T_avglatency);
+        
+        
+	    /*
+	     * Previous Video Length
+	     */
+        console.log("Previous_videoLength: "+T_AllAdsLength);
 
         
-//        console.log("YouSlow: LocalStatus referesh - "+T_localtime+"&"+T_hostname+"&"+T_city+"&"+T_region+"&"+T_country+"&"+T_loc+"&"+T_org+"&"+T_bufferduration+"&"+T_resolutionchanges+"&"+T_requestedresolutions+"&"+T_timelength+"&"+T_initialbufferingtime+"&"+T_abandonment+"&"+T_bufferflag+"&"+T_avglatency);
         
         /*
          * Abandonment
@@ -1025,7 +1139,8 @@ function printout_all_T_paramters(){
 	+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
 	+"&avglatency="+T_avglatency
 	+"&allquality="+T_available_video_quality
-	+"&fraction="+T_fraction;
+	+"&fraction="+T_fraction
+	+"&AllAdsLength="+T_AllAdsLength;
 	
 	console.log("YouSlow: T_All - "+URLparameters);
 
@@ -1051,7 +1166,8 @@ function printout_all_paramters(){
 	+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
 	+"&avglatency="+avglatency
 	+"&allquality="+available_video_quality
-	+"&fraction="+fraction;
+	+"&fraction="+fraction
+    +"&AllAdsLength="+AllAdsLength;
 	
 	
 	console.log("YouSlow: All - "+URLparameters);
@@ -1118,11 +1234,12 @@ function report(){
 							+"&timelength="+elapsedTime.toString()
 							+"&initialbufferingtime="+elapsedinitialBufferingTime.toString()
 							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+fraction.toString()
-	    					+"&avglatency="+T_avglatency //Should get T_avglatency
+	    					+"&avglatency="+avglatency //Need to check
 	    					+"&allquality="+available_video_quality
 	    					+"&version="+version;
 		
 	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?"+(URLparameters);
+	    
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
 //	    console.log("YouSlow: T_avglatency - "+T_avglatency);

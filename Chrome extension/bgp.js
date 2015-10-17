@@ -12,10 +12,13 @@ var sum_all_time = 0.0;
 var count_events = 0;
 var avg_latency =0;
 
+var detectedURL="";
+var isVideoAds=false;
+
 
 chrome.webRequest.onHeadersReceived.addListener(
 	    function(details) {
-	    	
+//	    	console.log( "detectedURL: "+fullURL);
 	    	if(findvideoURL){
 	    		
 	    		if (fullURL.indexOf("videoplayback?") > -1 ) {
@@ -47,12 +50,12 @@ chrome.webRequest.onHeadersReceived.addListener(
 
 
 
+
 /*
  * Receive and send messages to content script
  */
-
 chrome.runtime.onMessage.addListener(function(message2,sender2,sendResponse2){
-	  sendResponse2({getvideoURL: videoURL, getavglatency: avg_latency});
+	  sendResponse2({getvideoURL: videoURL, getavglatency: avg_latency, detectedURL: detectedURL, isVideoAds: isVideoAds});
 });
 
 
@@ -60,9 +63,22 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	    function(details) {
 //	    	var headers = details.requestHeaders;
 //	    	console.log(details.url);
-	    	var detectedURL = details.url;
+	    	detectedURL = details.url;
+
 	    	if (detectedURL.indexOf('videoplayback?') > -1 ) {
 	    		
+	    		/*
+	    		 * is the current url for video ads?
+	    		 * We found that YouTube Ads url contains ctier
+	    		 * But it is only the case where the Ads video server has different URL compared the one for the main video
+	    		 * We DON'T find the ctier parameters when the domains (for Ads and main content) are the same.
+	    		 */
+		    	if (detectedURL.indexOf('ctier=') > -1 ) {
+		    		isVideoAds=true;
+		    	}else{
+		    		isVideoAds=false;
+		    	}
+		    	
 	    		fullURL = details.url;
 	    		previous_requestId = details.requestId;
 //	    		console.log( "Request requestId: "+details.requestId);
@@ -73,9 +89,9 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	    		/*
 	    		 * We only catch YouTube video
 	    		 */
+	    		
 	    		var res = detectedURL.split("videoplayback");
 	    		if (res[0].indexOf(videoURL) > -1 ) {
-
 	    			// Maintain videoURL
 	    			videoURL = res[0];
 //	    			console.log( "Current URL found: "+videoURL);
@@ -84,8 +100,7 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	    			videoURL = res[0];
 	    			console.log("New URL dectected: "+videoURL);
 	    		}
-	    	} else {
-	    	}
+	    	} 
 	    	
 	        return {requestHeaders: details.requestHeaders};
 	    },

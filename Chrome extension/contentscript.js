@@ -6,8 +6,6 @@ s.onload = function() {
 };
 
 
-
-
 /*
  * Event listener - access to local storage
  * Save current buffering state locally. 
@@ -15,7 +13,19 @@ s.onload = function() {
  */
 
 var currentURL;
+var previousURL=null;
+var urlChangeCounter=0;
 var avglatency;
+var detectedURL;
+var isVideoAds;
+
+ 
+function sendDataToExtension() {
+//    var dataObj = {"avglatency":avglatency, "ispreVideoAds":ispreVideoAds, "prevideolength":prevideolength.toString()};
+    var dataObj = String(avglatency)+"&"+String(isVideoAds);
+    var storeEvent = new CustomEvent('getFromContentScript', {"detail":dataObj});
+    document.dispatchEvent(storeEvent);
+}
 
 
 document.addEventListener('BufferingStatus', function(e) {
@@ -41,6 +51,9 @@ document.addEventListener('BufferingStatus', function(e) {
     	 */
 		e.detail.avglatency = avglatency;
 		
+		
+		
+
 		chrome.storage.local.set({
 			"detail": e.detail
 		}, function(items) {
@@ -73,7 +86,20 @@ function SendMessageToBackgroundPage(data)
 //		  console.log("URL: "+response2.getvideoURL+", Avg_latency: "+response2.getavglatency+" ms");
 		  currentURL=response2.getvideoURL;
 		  avglatency=response2.getavglatency;
+		  detectedURL=response2.detectedURL;
+		  isVideoAds=response2.isVideoAds;
+//		  console.log("Video URL: "+currentURL);
+//		  console.log("detected URL: "+detectedURL);
+//		  console.log("isVideoAds: "+isVideoAds);
+//		  console.log("prevideolength: "+prevideolength);
+//		  console.log("urlChangeCounter: "+urlChangeCounter);
 	});
+	
+	/*
+	 * Update data messages to extension
+	 */
+	 sendDataToExtension();
+
 		
 }
 
