@@ -1,3 +1,5 @@
+For 1.1.8
+	- Add video Ads length
 
 For 1.1.7
 	- add fraction of play load (done)

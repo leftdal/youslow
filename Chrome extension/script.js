@@ -77,7 +77,7 @@ var fraction=0;
 var T_fraction=0;
 
 
-var version='Chrome 1.1.8_test';
+var version='Chrome 1.1.8';
 
 function onYouTubePlayerReady(playerId) {
 	
@@ -177,10 +177,8 @@ function onYouTubePlayerReady(playerId) {
 
         if(initialState==1){
         	
-        	//Initial elapsedTime
         	if(!isMainVideoStarted){
         		isMainVideoStarted=true;
-        		elapsedTime=0;
         	}
         	
         	startTime = new Date();
@@ -558,16 +556,11 @@ function state() {
 			startTime = new Date();
 						
 			if(isInitialBuffering){
-				//We reset elapsedTime, since it is not played yet
-				elapsedTime=0;
-				
 				isInitialBuffering = false;
 				initialBufferingEndTime = new Date();
 				var timeDiff = initialBufferingEndTime - initialBufferingStartTime;
 				elapsedinitialBufferingTime = timeDiff;
 				console.log("YouSlow: elapsedinitialBufferingTime: "+elapsedinitialBufferingTime);
-				
-				
 			}
 			
 			if(isBuffering){
@@ -758,9 +751,12 @@ function call_data_for_video_url_change_event(){
 							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+window.localStorage.getItem("fraction")
 							+"&avglatency="+T_avglatency //Should get T_avglatency
 							+"&allquality="+window.localStorage.getItem("allquality")
-	    					+"&version="+version;
+	    					+"&version="+version
+	    					+"&adslength="+T_AllAdsLength;
+	    
+	    
 	    		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
 //	    console.log("YouSlow: T_avglatency - "+T_avglatency);
@@ -950,8 +946,15 @@ function bufferingStatusUpdate(){
 	    		/*
 	    		 * There is the case where isInitialBuffering ON, but elapsedTime > 0
 	    		 * We found when the user contrinously watch the videos after the main video ends
+	    		 * We compare between elapsedinitialBufferingTime and AllAdsLength
+	    		 * The elapsedTime until the video is requested to actullay start playing the video is
+	    		 * MAX(elapsedinitialBufferingTime, AllAdsLength=0?X).
 	    		 */
 	    		if(isInitialBuffering){
+	    			CurrentStartTime="0";
+	    		}
+	    		var tmp_elapsedinitialBufferingTime=parseFloat(elapsedinitialBufferingTime)/1000;
+	    		if(tmp_elapsedinitialBufferingTime>parseFloat(CurrentStartTime)){
 	    			CurrentStartTime="0";
 	    		}
 	    			
@@ -968,11 +971,12 @@ function bufferingStatusUpdate(){
 	    		AdsEndTime = new Date().getTime() / 1000;
 	    		var tmp_videoAdsLength=AdsEndTime-AdsStartTime;
 	    		tmp_videoAdsLength=tmp_videoAdsLength+5; // We add additional 5sec of Ads since we skipped the first 5sec.
-	    		AllAdsLength = AllAdsLength+tmp_videoAdsLength.toString()+":"; // save video ads length (Ads start time?duration:)
+	    		tmp_rounded_videoAdsLength=Math.round(tmp_videoAdsLength);
+	    		AllAdsLength = AllAdsLength+tmp_rounded_videoAdsLength.toString()+":"; // save video ads length (Ads start time?duration:)
 	    		isPlayingAds=false;
 //	    		console.log("UPDATE-AdsEndTime: "+AdsEndTime);
 //	    		console.log("UPDATE-tmp_videoAdsLength: "+tmp_videoAdsLength);
-	    		console.log("UPDATE-AllAdsLength: "+AllAdsLength);
+//	    		console.log("UPDATE-AllAdsLength: "+AllAdsLength);
 	    	}
     		isPlayingMainVideo=true;
 	    }
@@ -1019,7 +1023,7 @@ function bufferingStatusUpdate(){
 	    /*
 	     * Previous Video Length
 	     */
-        console.log("Previous_videoLength: "+T_AllAdsLength);
+//        console.log("Previous_videoLength: "+T_AllAdsLength);
 
         
         
@@ -1092,10 +1096,12 @@ function reportWithPreviousData(){
 							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+T_fraction.toString()
 							+"&avglatency="+T_avglatency //Should get T_avglatency
 							+"&allquality="+T_available_video_quality
-	    					+"&version="+version;
+	    					+"&version="+version
+	    					+"&adslength="+T_AllAdsLength;
+	    
 	    
 
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
 //	    console.log("YouSlow: T_avglatency - "+T_avglatency);
@@ -1236,9 +1242,10 @@ function report(){
 							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+fraction.toString()
 	    					+"&avglatency="+avglatency //Need to check
 	    					+"&allquality="+available_video_quality
-	    					+"&version="+version;
+	    					+"&version="+version
+	    					+"&adslength="+AllAdsLength;
 		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured9.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
 	    
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
