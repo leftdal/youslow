@@ -2,12 +2,12 @@
   "images" : [
     {
       "idiom" : "universal",
-      "scale" : "1x"
+      "scale" : "1x",
+      "filename" : "youslow_logo.png"
     },
     {
       "idiom" : "universal",
-      "scale" : "2x",
-      "filename" : "second.pdf"
+      "scale" : "2x"
     },
     {
       "idiom" : "universal",

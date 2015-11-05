@@ -1,23 +1,6 @@
 package com.testyoutube;
 
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.Set;
-
 import org.achartengine.GraphicalView;
-
-import android.app.ActionBar.LayoutParams;
-import android.app.Activity;
-import android.content.Context;
-import android.graphics.Color;
-import android.os.Bundle;
-import android.widget.LinearLayout;
-import android.widget.ScrollView;
 
 public class PiechartActivity extends Activity  {
 	

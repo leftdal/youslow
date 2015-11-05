@@ -40,9 +40,9 @@ class VideoTableDataSource: NSObject, UITableViewDataSource, UITableViewDelegate
         let url = NSURL(string: videoList.videoThumbnailOfIndex(row))
         let request: NSURLRequest = NSURLRequest(URL: url!)
         let urlConnection: NSURLConnection = NSURLConnection(request: request, delegate: self)!
-        NSURLConnection.sendAsynchronousRequest(request, queue: NSOperationQueue.mainQueue(), completionHandler: {(response: NSURLResponse!, data: NSData!, error: NSError!) -> Void in
+        NSURLConnection.sendAsynchronousRequest(request, queue: NSOperationQueue.mainQueue(), completionHandler: {(response: NSURLResponse?, data: NSData?, error: NSError?) -> Void in
             if error == nil {
-                let img: UIImage? = UIImage(data: data)
+                let img: UIImage? = UIImage(data: data!)
                 if img != nil {
                     dispatch_async(dispatch_get_main_queue(), {
                         cell.thumbnailView?.image = img!

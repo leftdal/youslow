@@ -1,29 +1,9 @@
 package com.testyoutube;
 
-import java.util.List; 
-
 import com.squareup.picasso.Picasso;
 
-import android.app.Activity; 
-import android.content.Intent;
-import android.content.res.Configuration;
-import android.os.Bundle;
-import android.os.Handler;
 import android.support.v7.app.ActionBarDrawerToggle; 
-import android.support.v4.widget.DrawerLayout;
-import android.view.Menu;
-import android.view.MenuInflater;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.KeyEvent;
-import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
-import android.widget.AdapterView;
-import android.widget.ArrayAdapter;
-import android.widget.EditText;
-import android.widget.ImageView;
-import android.widget.ListView;
-import android.widget.TextView; 
+import android.support.v4.widget.DrawerLayout; 
 
 public class SearchActivity extends Activity {
  

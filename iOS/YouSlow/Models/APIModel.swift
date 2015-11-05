@@ -25,7 +25,7 @@ class DataApi {
     }
     
     func getList(query: String, success: NSDictionary -> Void) {
-        let newQuery = query.stringByReplacingOccurrencesOfString(" ", withString: "%20", options: NSStringCompareOptions.allZeros, range: nil)
+        let newQuery = query.stringByReplacingOccurrencesOfString(" ", withString: "%20", options: NSStringCompareOptions(), range: nil)
         get("\(host)search?part=snippet&q=\(newQuery)&maxResults=10&key=\(apiKey)", success: success)
     }
     
@@ -53,28 +53,38 @@ class DataApi {
         
         UIApplication.sharedApplication().networkActivityIndicatorVisible = true
         
-        println(path)
+        print(path)
+        
         let url = NSURL(string: path)
 
-        let task = session.dataTaskWithURL(url!, completionHandler: {(data: NSData!, res: NSURLResponse!, err: NSError!) -> Void in
+        let task = session.dataTaskWithURL(url!, completionHandler: {(data: NSData?, res: NSURLResponse?, err: NSError?) -> Void in
             UIApplication.sharedApplication().networkActivityIndicatorVisible = false
             
             if err != nil {
-                fail?(err)
+                fail?(err!)
                 return
             }
             var jsonErr: NSError?
-            let jsonObject: AnyObject! = NSJSONSerialization.JSONObjectWithData(data, options: NSJSONReadingOptions.MutableContainers, error: &jsonErr)
+            let jsonObject: AnyObject!
+            do {
+                jsonObject = try NSJSONSerialization.JSONObjectWithData(data!, options: NSJSONReadingOptions.MutableContainers)
+            } catch var error as NSError {
+                jsonErr = error
+                jsonObject = nil
+            } catch {
+                fatalError()
+            }
             if jsonErr != nil {
                 // Json Conversion Error
 //                let resString = String(data
-                println(NSString(data: data, encoding:NSUTF8StringEncoding))
+                print(NSString(data: data!, encoding:NSUTF8StringEncoding))
                 fail?(NSError(domain: "json conversion", code: 510, userInfo: nil))
                 return
             }
         
             if let json = jsonObject as? NSDictionary  {
                 success?(json)
+//                print(json)
                 return
             }
         })

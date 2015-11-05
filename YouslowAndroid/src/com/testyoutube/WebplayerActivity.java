@@ -1,52 +1,6 @@
 package com.testyoutube;
  
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader; 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Scanner;
-
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.DefaultHttpClient;
-
-import com.testyoutube.R;   
-
-import android.annotation.SuppressLint;
-import android.app.Activity;
-import android.content.Context;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.location.Location;
-import android.location.LocationManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
-import android.os.AsyncTask;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler; 
-import android.text.Spannable;
-import android.text.SpannableString;
-import android.text.method.ScrollingMovementMethod;
-import android.text.style.ForegroundColorSpan;
-import android.text.style.StyleSpan;
-import android.view.KeyEvent;
-import android.view.View;
-import android.webkit.ConsoleMessage;
-import android.webkit.WebChromeClient;
-import android.webkit.WebResourceResponse;
-import android.webkit.WebSettings;
-import android.webkit.WebView; 
-import android.webkit.WebViewClient; 
-import android.widget.LinearLayout;
-import android.widget.TextView;
+import com.testyoutube.R;
 
 
 

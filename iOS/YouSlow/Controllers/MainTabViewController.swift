@@ -12,7 +12,7 @@ class MainTabViewController: UITabBarController {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        let videoListVC = self.viewControllers![0] as! UIViewController;
+        let videoListVC = self.viewControllers![0] ;
 //        let reportVC = self.viewControllers![0] as! UIViewController;
         videoListVC.tabBarItem = UITabBarItem(title: "Video List", image: UIImage(named: "first"), selectedImage: UIImage(named: "first"))
 //

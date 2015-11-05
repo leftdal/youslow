@@ -49,7 +49,7 @@ class VideoTableViewController: UITableViewController, UISearchBarDelegate, Vide
     
     func searchBarSearchButtonClicked(searchBar: UISearchBar) {
         let query = searchBar.text
-        self.videoDataSource.videoList.requestDataForRefresh(query)
+        self.videoDataSource.videoList.requestDataForRefresh(query!)
         searchBar.resignFirstResponder()
     }
     

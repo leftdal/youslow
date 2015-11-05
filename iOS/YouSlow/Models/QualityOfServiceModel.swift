@@ -44,6 +44,9 @@ class QualityOfService {
         for i in 0 ..< bufferingTimes.count {
             description += "\(bufferingTimes[i])?\(bufferingIntervals[i]):"
         }
+//        println("======");
+//        println(description);
+//        println("======");
         return description
     }
     var timesOfResolutionChange: Int {

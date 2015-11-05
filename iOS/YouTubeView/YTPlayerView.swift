@@ -22,7 +22,7 @@ class YTPlayerView: UIView, UIWebViewDelegate {
     var delegate: YTPlayerDelegate?
      var webView: UIWebView?
 
-    required init(coder aDecoder: NSCoder) {
+    required init?(coder aDecoder: NSCoder) {
         super.init(coder: aDecoder)
 //        loadPlayerWithOptions(nil)
     }
@@ -40,7 +40,7 @@ class YTPlayerView: UIView, UIWebViewDelegate {
     */
     
     func loadVideoById(id: String) {
-        var js = "player.loadVideoById('\(id)', 0, 'medium');"
+        let js = "player.loadVideoById('\(id)', 0, 'medium');"
         self.evaluateJavaScript(js)
     }
     
@@ -51,11 +51,16 @@ class YTPlayerView: UIView, UIWebViewDelegate {
             return false
         }
         var err: NSError?
-        let template = NSString(contentsOfFile: path!, encoding: NSUTF8StringEncoding, error: &err) as! String
-        let iframe = template.stringByReplacingOccurrencesOfString("{{VIDEO_ID}}", withString: id, options: NSStringCompareOptions.allZeros, range: nil)
+
+        //        let template = NSString(contentsOfFile: path!, encoding: NSUTF8StringEncoding, error: &err) as! String
+//        let iframe = template.stringByReplacingOccurrencesOfString("{{VIDEO_ID}}", withString: id, options: NSStringCompareOptions.allZeros, range: nil)
+        let template = try! String(contentsOfFile: path!, encoding: NSUTF8StringEncoding)
+        let iframe = template.stringByReplacingOccurrencesOfString("{{VIDEO_ID}}", withString: id, options: [], range: nil)
+        
         if err != nil {
             return false
         }
+        
         newWebView()
         webView?.loadHTMLString(iframe, baseURL: NSURL(string: originalUrl))
         webView?.delegate = self
@@ -88,8 +93,8 @@ class YTPlayerView: UIView, UIWebViewDelegate {
         return self.webView?.stringByEvaluatingJavaScriptFromString(js)
     }
     
-    func webView(webView: UIWebView, didFailLoadWithError error: NSError) {
-        println(error)
+    func webView(webView: UIWebView, didFailLoadWithError error: NSError?) {
+        print(error)
     }
     func webView(webView: UIWebView, shouldStartLoadWithRequest request: NSURLRequest, navigationType: UIWebViewNavigationType) -> Bool {
         let url: NSURL
@@ -112,7 +117,7 @@ class YTPlayerView: UIView, UIWebViewDelegate {
         return true
     }
     func webViewDidStartLoad(webView: UIWebView) {
-        println(webView.request?.URL)
+        print(webView.request?.URL)
     }
     private func shouldNavigateToUrl(url: NSURL) -> Bool {
         return true
@@ -125,13 +130,13 @@ class YTPlayerView: UIView, UIWebViewDelegate {
         let action: String = event.host!
         let callback: YTPlayerCallback? = YTPlayerCallback(rawValue: action)
         let query = event.query
-        let data = query?.substringFromIndex(advance(query!.startIndex, 5))
+        let data = query?.substringFromIndex(query!.startIndex.advancedBy(5))
         if callback == nil {
             return
         }
         switch callback! {
         case .OnYouTubeIframeAPIReady:
-            println("api ready")
+            print("api ready")
 //            delegate?.playerHadIframeApiReady(self)
         case .OnReady:
             delegate?.playerDidBecomeReady(self)
@@ -144,7 +149,7 @@ class YTPlayerView: UIView, UIWebViewDelegate {
                 delegate?.playerDidChangeToQuality(self, quality: quality)
             }
         default:
-            println("error: \(data)")
+            print("error: \(data)")
         }
     }
     
@@ -152,12 +157,12 @@ class YTPlayerView: UIView, UIWebViewDelegate {
     private func newWebView() {
         removeWebView()
         let newWebView = UIWebView(frame: self.bounds)
-        newWebView.autoresizingMask = UIViewAutoresizing.FlexibleHeight | UIViewAutoresizing.FlexibleWidth
+        newWebView.autoresizingMask = [UIViewAutoresizing.FlexibleHeight, UIViewAutoresizing.FlexibleWidth]
         newWebView.scrollView.scrollEnabled = false
         newWebView.scrollView.bounces = false
         newWebView.allowsInlineMediaPlayback = true
         newWebView.mediaPlaybackRequiresUserAction = false
-        newWebView.setTranslatesAutoresizingMaskIntoConstraints(false)
+        newWebView.translatesAutoresizingMaskIntoConstraints = false
         webView = newWebView
         addSubview(self.webView!)
     }
