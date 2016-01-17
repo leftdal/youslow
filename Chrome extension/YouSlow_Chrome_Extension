@@ -8,11 +8,11 @@ Clients watch videos in http/https://www.youtube.com
 	|
 	|_ _ _ CONTENT SCRIPTS: Contenrscript.js that contains JavaScript files that run in the context of web pages
 	|		+ Communication to bgp.js
-	|		+ AddEventListener, meassage passing to Extension (script.js)
+	|		+ AddEventListener, message-passing to Extension (script.js)
 	|		+ Locally save measurements
 	|
 	|_ _ _ WEB ACCESS RESOURCE: script.js that is usable in the context of a web page
-			+ Core YouSlow scriipts
+			+ Core YouSlow scripts
 			+ Communication to contentscript.js
 			+ Measure video playback events
 			+ Report data to YouSlow monitoring server over HTTPS
