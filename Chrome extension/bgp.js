@@ -4,16 +4,21 @@ var fullURL = "";
 var findvideoURL = false;
 var previous_time = 0.0;
 var after_time = 0.0;
-
 var previous_requestId = 0;
 var after_requestId = 0;
-
 var sum_all_time = 0.0;
 var count_events = 0;
 var avg_latency =0;
-
 var detectedURL="";
 var isVideoAds=false;
+
+
+
+/*
+ * Background page
+ * 	: Exchange messages to contentscripts (contentscript.js)
+ *  : Use Chrome WebRequest APIs to monitor video URLs and measure HTTP latency
+ */
 
 
 chrome.webRequest.onHeadersReceived.addListener(

@@ -1,0 +1,18 @@
+
+
+Clients watch videos in http/https://www.youtube.com
+	|
+	|
+	|_ _ _ BACKGROUND PAGE: bgp.js
+	|		+ Use Chrome WebRequest API - detect video URLs and measure HTTP latency
+	|
+	|_ _ _ CONTENT SCRIPTS: Contenrscript.js that contains JavaScript files that run in the context of web pages
+	|		+ Communication to bgp.js
+	|		+ AddEventListener, meassage passing to Extension (script.js)
+	|		+ Locally save measurements
+	|
+	|_ _ _ WEB ACCESS RESOURCE: script.js that is usable in the context of a web page
+			+ Core YouSlow scriipts
+			+ Communication to contentscript.js
+			+ Measure video playback events
+			+ Report data to YouSlow monitoring server over HTTPS

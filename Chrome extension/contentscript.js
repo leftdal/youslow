@@ -7,6 +7,13 @@ s.onload = function() {
 
 
 /*
+ * ContentScripts
+ * 	: Exchange messages to Backgroundpage (bgp.js)
+ *  : Update real-time messages and share with extensions (Script.js)
+ */
+
+
+/*
  * Event listener - access to local storage
  * Save current buffering state locally. 
  * Necessary when a client stops (or changes) a video in middle of experiencing buffer stalling
@@ -81,6 +88,10 @@ function SendMessageToBackgroundPage(data)
 	/*
 	 * However, we cannot use IP to geolocation database since all IPs are marked on Mountain view, CA
 	 * We can measure HTTP response time using chrome.webRequest.onHeadersReceived.addListener(function callback)
+	 */
+	
+	/*
+	 * Sending a request from a content script:
 	 */
 	chrome.runtime.sendMessage({greeting: "getvideoURL"}, function(response2) {
 //		  console.log("URL: "+response2.getvideoURL+", Avg_latency: "+response2.getavglatency+" ms");
