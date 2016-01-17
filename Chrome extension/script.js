@@ -704,8 +704,9 @@ function call_data_for_video_url_change_event(){
 	if(bufferingDuration>elapsedTime)
 		isGood = false;
 	
-	if(elapsedTime<1)
-		isGood = false;
+	//Disable for the case where viewers close during Ads
+//	if(elapsedTime<1)
+//		isGood = false;
 	
 	/*
 	 * The below msg appears if no good, No-good msg prevents the unnecssarry report when the url changes 
@@ -1071,8 +1072,10 @@ function reportWithPreviousData(){
 	if( T_country==null || T_country.length < 1)
 		isGood = false;
 	
-	if(parseInt(T_timelength)<1)
-		isGood = false;
+	
+	// We disable this for the case where viewers close during ads
+//	if(parseInt(T_timelength)<1)
+//		isGood = false;
 	
 	if(parseInt(T_bufferduration)>parseInt(T_timelength))
 		isGood = false;
