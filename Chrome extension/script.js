@@ -99,11 +99,13 @@ function onYouTubePlayerReady(playerId) {
 	
 	player = document.getElementById("movie_player");
 	
+	
+	//In case that, fail to detect video players in Chrome browsers
 	if(player == null)
 		player = document.getElementById("ytPlayer");
-	
 	if(player == null)
 		player = document.getElementById("myytplayer");
+		
 	
 	requestedResolutions = player.getPlaybackQuality()+":";
 
@@ -123,11 +125,10 @@ function onYouTubePlayerReady(playerId) {
 		This prevents from being too late to get initial player status, in order to measure initial buffering time
 		Initial buffering time: from the instant the video player has been loaded to it is actually playing the video
 	*/
-	
 	var initialState = player.getPlayerState();
 	
 	
-	// Gather all available bitrates for the video
+	// Gather all available bitrates of the video
 	available_video_quality = '';
 	var quality_list = player.getAvailableQualityLevels();
 	for (var prop in quality_list) {
@@ -138,6 +139,8 @@ function onYouTubePlayerReady(playerId) {
 	console.log(available_video_quality);
 
 	
+	
+	// Start measuring InitialBuffering time
 	if(initialState==-1){
 		isInitialBuffering = true;
 		initialBufferingStartTime = new Date();
@@ -150,7 +153,7 @@ function onYouTubePlayerReady(playerId) {
 	 * Go through abandonment check
 	 * This is caused when a client stopped watching a video due to the buffer stalling previously
 	 * The information is locally save on client's device.
-	 * When a client watches the video again or new video, it checks if it needs to report the abandonment.
+	 * When a client watches the video again or new video, it checks if it needs to report the abandonment to monitoring server.
 	 * Wait for just 1 second until it gets IP and basic ISP information
 	 */
 	setTimeout(function(){
@@ -180,25 +183,22 @@ function onYouTubePlayerReady(playerId) {
 			startTime = null;
 		}
 
-//		console.log("initialState: "+initialState);
 
-        if(initialState==1){
-        	
+        if(initialState==1){ // Video playing
         	if(!isMainVideoStarted){
         		isMainVideoStarted=true;
         	}
-        	
         	startTime = new Date();
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
 			bufferingStatusUpdate();
-		}else if(initialState==-1){
+		}else if(initialState==-1){ // Video not started
 			bufferingStatusUpdateValue = "NOT STARTED";
 			bufferingStatusUpdate();
 			isInitialBuffering = true;
 			initialBufferingStartTime = new Date();		
-		}else if(initialState==0){
+		}else if(initialState==0){ // Video ended
 			bufferingStatusUpdateValue = "DOWN(END)";
-		}else if(initialState==3){
+		}else if(initialState==3){ // Video rebuffering
 			bufferingStatusUpdateValue = "UP";
 			bufferingStatusUpdate();
 		}
@@ -241,7 +241,7 @@ function getUserInfo(){
 	
 	/*
 	 * Request Dyswis server to find the geolocation info.
-	 * We implemented this system because Chrome Web browser prevents HTTP GET request
+	 * We implemented this system in case that Chrome Web browser prevents HTTP GET request
 	 */
 	var userInfoURL = "https://dyswis.cs.columbia.edu/youslow/getinfo.php?"+IP.trim();
 	console.log("YouSlow: We use ipinfo.io to find an approximate location");
@@ -264,7 +264,7 @@ function getUserInfo(){
 //	     console.log("YouSlow 5: "+obj.country);
 //	     console.log("YouSlow 6: "+obj.loc);
 //	     console.log("YouSlow 7: "+obj.org);
-	    
+//	    
 	    hostname = obj.hostname;
 	    city = obj.city;
 	    region = obj.region;
@@ -315,6 +315,7 @@ function getUserInfo(){
 			  
 			  var resp = xhr2.responseText;
 			  var split_resp = resp.split("pre>");
+			  var split_resp2 = resp.split("\n");			  
 			  
 			  var new_resp = split_resp[1];
 			  
@@ -375,13 +376,41 @@ function getUserInfo(){
 		    }
 		    
 		    
-//		    console.log("YouSlow hostname: "+hostname);
-//		    console.log("YouSlow city: "+city);
-//		    console.log("YouSlow region: "+region);
-//		    console.log("YouSlow country: "+country);
-//		    console.log("YouSlow loc: "+loc);
-//		    console.log("YouSlow org: "+org);
+		    /*
+		     * Hardcoded
+		     */
+		    if(country=='none'){
+				  for (i=0;i<split_resp2.length;i++){
+					  if(split_resp2[i].indexOf("<td>Network</td>") > -1){
+//						  console.log(i+":"+split_resp2[i+1]);
+						  var temp=split_resp2[i+1];
+						  var temp_split = temp.split("</a>");
+						  var temp_hostname = temp_split[1];
+						  temp_hostname = temp_hostname.replace("</td>", "");
+						  org=temp_hostname.trim();
+					  }else if(split_resp2[i].indexOf("<td>City</td>") > -1){
+//						  console.log(i+":"+split_resp2[i+3]);
+						  var temp=split_resp2[i+3];
+						  var temp_split = temp.split(", ");
+						  city = temp_split[0].trim();
+						  region = temp_split[1].trim();
+						  country = temp_split[2].trim();
+					  }else if(split_resp2[i].indexOf("<td>Latitude/Longitude</td>") > -1){
+//						  console.log(i+":"+split_resp2[i+1]);
+						  var temp=split_resp2[i+1];
+						  var temp_split = temp.split("\"");
+						  loc = temp_split[1].trim();
+					  }
+				  }		    	
+		    }
 		    
+		    console.log("YouSlow hostname: "+hostname);
+		    console.log("YouSlow city: "+city);
+		    console.log("YouSlow region: "+region);
+		    console.log("YouSlow country: "+country);
+		    console.log("YouSlow loc: "+loc);
+		    console.log("YouSlow org: "+org);
+
 	
 		  }
 		}
@@ -393,6 +422,9 @@ function getUserInfo(){
 }
 
 
+
+
+// Event listener PlaybackQualityChange
 function PlaybackQualityChange() { 
 	
 	var currentState = player.getPlaybackQuality();
@@ -404,9 +436,8 @@ function PlaybackQualityChange() {
 	
 }
 
-
+//Event listener PlaybackRateChange
 function PlaybackRateChange() { 
-	
 	var currentState = player.getPlaybackRate();
 	requestedResolutions = requestedResolutions+currentState+":";
 	requestedresolutionswithtime = requestedresolutionswithtime+elapsedTime.toString()+"?"+currentState+":";
@@ -415,6 +446,15 @@ function PlaybackRateChange() {
 	NumOfResolutionChanges = NumOfResolutionChanges+1;
 	
 }
+
+
+
+
+
+
+
+
+
 
 
 /*
@@ -426,8 +466,6 @@ function PlaybackRateChange() {
  * 3 (buffering)
  * 5 (video cued)
  */
-
-
 function state() { 
 	
 	var currentState = player.getPlayerState();
@@ -441,11 +479,30 @@ function state() {
 			
 			//BufferStalling status update
 			bufferingStatusUpdateValue = "UP";
-			bufferingStatusUpdate();
 			numofrebufferings = numofrebufferings+1;
 			bufferdurationwithtime = bufferdurationwithtime+elapsedTime.toString()+'?';
+			bufferingStatusUpdate();
 		}
 		
+		if(startTime != null){
+			endTime = new Date();
+			var timeDiff = endTime - startTime;
+			var timeDiff = timeDiff/1000;
+			var seconds = Math.round(timeDiff);
+			elapsedTime = elapsedTime + seconds; // Total playback time also contains the length of bufferStalling time
+			startTime = null;
+		}
+		
+	}else if(currentState==0){
+		
+		
+		/*
+		 * Old version:
+		 * 	Report only when elapsedTime>0
+		 * 
+		 * From Jan-17-2015 
+		 * 	EDIT: we report even elapsedTime == 0 in case that it closes during initial buffering or Ads
+		 */
 		if(startTime != null){
 			endTime = new Date();
 			var timeDiff = endTime - startTime;
@@ -454,51 +511,46 @@ function state() {
 			elapsedTime = elapsedTime + seconds;
 			startTime = null;
 		}
+		report();
 		
-	}else if(currentState==0){
-		
-		
-		/*
-		 * Report only when elapsedTime>0
-		 */
-		if(elapsedTime>0){
-			
-			if(startTime != null){
-				endTime = new Date();
-				var timeDiff = endTime - startTime;
-				var timeDiff = timeDiff/1000;
-				var seconds = Math.round(timeDiff);
-				elapsedTime = elapsedTime + seconds;
-				startTime = null;
-			}
-			
-			report();
-			
-		}else{
-			
-			// Initiates
-			isBuffering = false;
-			bufferingDuration = 0;
-			NumOfResolutionChanges = 1;
-			requestedResolutions = player.getPlaybackQuality()+":";
-			elapsedTime = 0;
-			startTime = null;
-			initialBufferingStartTime=null;
-			initialBufferingEndTime=null;
-			elapsedinitialBufferingTime=0;
-			isInitialBuffering = false;
-			video_url=null;
-			avglatency='';
-			requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
-			numofrebufferings=0;
-			bufferdurationwithtime='';
-			//BufferStalling status update
-			bufferingStatusUpdateValue = "DOWN(END)";
-			bufferingStatusUpdate();
-			AllAdsLength="";
-			isMainVideoStarted=false;
-			
-		}
+//		if(elapsedTime>0){
+//			
+//			if(startTime != null){
+//				endTime = new Date();
+//				var timeDiff = endTime - startTime;
+//				var timeDiff = timeDiff/1000;
+//				var seconds = Math.round(timeDiff);
+//				elapsedTime = elapsedTime + seconds;
+//				startTime = null;
+//			}
+//			
+//			report();
+//			
+//		}else{
+//			
+//			// Initiates
+//			isBuffering = false;
+//			bufferingDuration = 0;
+//			NumOfResolutionChanges = 1;
+//			requestedResolutions = player.getPlaybackQuality()+":";
+//			elapsedTime = 0;
+//			startTime = null;
+//			initialBufferingStartTime=null;
+//			initialBufferingEndTime=null;
+//			elapsedinitialBufferingTime=0;
+//			isInitialBuffering = false;
+//			video_url=null;
+//			avglatency='';
+//			requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
+//			numofrebufferings=0;
+//			bufferdurationwithtime='';
+//			//BufferStalling status update
+//			bufferingStatusUpdateValue = "DOWN(END)";
+//			bufferingStatusUpdate();
+//			AllAdsLength="";
+//			isMainVideoStarted=false;
+//			
+//		}
 		
 		
 	}else if(currentState==-1){
@@ -614,7 +666,7 @@ function state() {
 			}
 			
 			//BufferStalling status update
-			bufferingStatusUpdateValue = "DOWN";
+			bufferingStatusUpdateValue = "DOWN(PAUSED)";
 			bufferingStatusUpdate();
 		}
 		
@@ -623,9 +675,9 @@ function state() {
 }
 
 
+
+// initialize data
 function initialData(){
-	
-	// Initiates
 	isBuffering = false;
 	bufferingDuration = 0;
 	NumOfResolutionChanges = 1;
@@ -650,10 +702,10 @@ function initialData(){
 }
 
 
+
+
+//initialize locally saved data
 function initialData_T(){
-	
-	// Initiates
-	// initialData
 	T_isBuffering = false;
 	T_bufferingDuration = 0;
 	T_NumOfResolutionChanges = 1;
@@ -674,6 +726,8 @@ function initialData_T(){
 	T_AllAdsLength="";
 	
 }
+
+
 
 function call_data_for_video_url_change_event(){
 	
@@ -704,14 +758,15 @@ function call_data_for_video_url_change_event(){
 	org = org.replace("&","");
 	
 	var isGood = true;
-	
-	if( country==null || country.length < 1)
+		
+	if( country==null || country.length < 1 || country=='none' || country==''){
 		isGood = false;
+	}
+		
 	
-	if(bufferingDuration>elapsedTime)
-		isGood = false;
-	
-	//Disable for the case where viewers close during Ads
+	//Disable for the case where viewers close during Ads	
+//	if(bufferingDuration>elapsedTime)
+//		isGood = false;	
 //	if(elapsedTime<1)
 //		isGood = false;
 	
@@ -720,7 +775,8 @@ function call_data_for_video_url_change_event(){
 	 */
 	if(!isGood){
 		console.log('No good at call_data_for_video_url_change_event');
-		
+		console.log("YouSlow: Decline report request!");
+
 		/*
 		 * Initialized all data
 		 */
@@ -739,7 +795,9 @@ function call_data_for_video_url_change_event(){
 		initialBufferingStartTime = new Date();
 		
 	}
+
 	
+	// Report measurements for previouly closed video based on the locally saved measurements
 	if(isGood){
 	    var URLparameters = "localtime="+timeReport	
 							+"&hostname="+window.localStorage.getItem("hostname")
@@ -767,7 +825,6 @@ function call_data_for_video_url_change_event(){
 	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
-//	    console.log("YouSlow: T_avglatency - "+T_avglatency);
 	    					
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", videoInfoURL, true);
@@ -800,6 +857,10 @@ function call_data_for_video_url_change_event(){
 
 
 
+
+
+// Every 5 seconds, we save data locally
+// CAUSION: CHROME QUOTA
 function bufferingStatusUpdate(){
 	
 	var localTime = new Date();
@@ -812,7 +873,6 @@ function bufferingStatusUpdate(){
     timeReport = year+"-"+month+"-"+date+" "+hours+":"+minutes+":"+seconds;
     
     /*
-     * This is only for report data due to video URL changes
      * To prevent from reporting data after the new data is replaced
      * Therefore wait for 4 seconds, during the time, report data for video URL change events
      */
@@ -1076,16 +1136,17 @@ function reportWithPreviousData(){
 	
 	var isGood = true;
 	
-	if( T_country==null || T_country.length < 1)
+	if( T_country==null || T_country.length < 1 || T_country=='none' || T_country==''){
 		isGood = false;
+		console.log("YouSlow: Decline report request!");
+	}
+		
 	
-	
-	// We disable this for the case where viewers close during ads
+// We disable this for the case where viewers close during ads
 //	if(parseInt(T_timelength)<1)
 //		isGood = false;
-	
-	if(parseInt(T_bufferduration)>parseInt(T_timelength))
-		isGood = false;
+//	if(parseInt(T_bufferduration)>parseInt(T_timelength))
+//		isGood = false;
 	
 	if(isGood){
 	    var URLparameters = "localtime="+T_localtime	
@@ -1228,9 +1289,17 @@ function report(){
 	
 	if( country==null || country.length < 1)
 		isGood = false;
-	
-	if(bufferingDuration>elapsedTime)
+
+	if( country==null || country.length < 1 || country=='none' || country==''){
 		isGood = false;
+	}
+
+	if(!isGood)
+		console.log("YouSlow: Decline report request!");
+
+	
+//	if(bufferingDuration>elapsedTime)
+//		isGood = false;
 
 	
 	if(isGood){
@@ -1550,7 +1619,7 @@ function convert(t)
 	t = t.replace('Ð£', 'u');
 	t = t.replace('Ñ', 'f');
 	t = t.replace('Ð¤', 'f');
-	t = t.replace('Ñ', 'h');
+	t = t.replace('Ñ', 'h');
 	t = t.replace('Ð¥', 'h');
 	t = t.replace('Ñ', 'c');
 	t = t.replace('Ð¦', 'c');
