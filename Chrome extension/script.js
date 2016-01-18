@@ -77,7 +77,7 @@ var fraction=0;
 var T_fraction=0;
 
 
-var version='Chrome 1.1.9-test';
+var version='Chrome 1.1.9';
 
 
 
@@ -294,14 +294,89 @@ function getUserInfo(){
 	  }
 	}
 	xhr.send();
-	
+
 	
 	
 	/*
 	 * If TOO many request happen
 	 * We take alternative solutions
 	 */
-	if(hostname == 'none'){
+	if(country == 'none'){
+
+		
+//	    console.log("We use ip-api.com");
+
+		var userInfoURL = "https://dyswis.cs.columbia.edu/youslow/getinfo_ip_api.php?"+IP.trim();
+		var xhr3 = new XMLHttpRequest();
+		xhr3.open("GET", userInfoURL, true);
+		xhr3.onreadystatechange = function() {
+
+			if (xhr3.readyState == 4) {
+				
+				var resp = xhr3.responseText;
+			    var obj = JSON.parse(resp);			    
+			    city = obj.city;
+			    region = obj.regionName;
+			    country = obj.country;
+			    var lat=obj.lat;
+			    var lon=obj.lon;
+			    loc =lat+","+lon;
+			    org = obj.isp;
+			    
+			    if(hostname != null){
+			    	hostname = hostname.trim();
+			    }
+			    if(city != null){
+			    	city = city.trim();
+			    }
+			    if(region != null){
+			    	region = region.trim();
+			    }
+			    if(country != null){
+			    	country = country.trim();
+			    }
+			    if(loc != null){
+			    	loc = loc.trim();
+			    }
+			    if(org != null){
+			    	org = org.trim();
+			    }
+			    
+//			    console.log("YouSlow hostname: "+hostname);
+//			    console.log("YouSlow city: "+city);
+//			    console.log("YouSlow region: "+region);
+//			    console.log("YouSlow country: "+country);
+//			    console.log("YouSlow loc: "+loc);
+//			    console.log("YouSlow org: "+org);
+
+			}
+		}
+		
+		xhr3.send();
+		
+		
+		// If we failed for both cases due tio Quota limit,
+		// We try to get the GeoInfo from the Client's side.
+		setTimeout(function(){
+			GetGeoInfoClientSide();
+		},1000)
+	
+	}
+	
+
+	
+}
+
+
+function GetGeoInfoClientSide() {
+
+	
+	/*
+	 * If TOO many request happen
+	 * We take alternative solutions
+	 */
+	
+	if(country == 'none'){
 		
 		console.log("YouSlow: We take alternative method to get user information. ");
 		
@@ -330,12 +405,8 @@ function getUserInfo(){
 
 			  for (i=0;i<split_new_resp.length;i++){
 				  if(split_new_resp[i].trim().length>1){
-					  
-//					  console.log(i+":"+split_new_resp[i]);
-					  
-					  /*
-					   * Hardcoded
-					   */
+					  // console.log(i+":"+split_new_resp[i]);
+					  // Hardcoded
 					  var split_new_resp2 = split_new_resp[i].split(":");
 					  
 					  if (split_new_resp[i].indexOf("hostname") > -1){
@@ -351,8 +422,6 @@ function getUserInfo(){
 					  }else if (split_new_resp[i].indexOf("org") > -1){
 						  org = split_new_resp2[1];
 					  }
-
-						
 				  }
 			  }
 			  
@@ -375,10 +444,7 @@ function getUserInfo(){
 		    	org = org.trim();
 		    }
 		    
-		    
-		    /*
-		     * Hardcoded
-		     */
+		    // Hardcoded
 		    if(country=='none'){
 				  for (i=0;i<split_resp2.length;i++){
 					  if(split_resp2[i].indexOf("<td>Network</td>") > -1){
@@ -404,12 +470,12 @@ function getUserInfo(){
 				  }		    	
 		    }
 		    
-		    console.log("YouSlow hostname: "+hostname);
-		    console.log("YouSlow city: "+city);
-		    console.log("YouSlow region: "+region);
-		    console.log("YouSlow country: "+country);
-		    console.log("YouSlow loc: "+loc);
-		    console.log("YouSlow org: "+org);
+//		    console.log("YouSlow hostname: "+hostname);
+//		    console.log("YouSlow city: "+city);
+//		    console.log("YouSlow region: "+region);
+//		    console.log("YouSlow country: "+country);
+//		    console.log("YouSlow loc: "+loc);
+//		    console.log("YouSlow org: "+org);
 
 	
 		  }
@@ -418,10 +484,7 @@ function getUserInfo(){
 	
 	}
 
-	
 }
-
-
 
 
 // Event listener PlaybackQualityChange
@@ -448,15 +511,6 @@ function PlaybackRateChange() {
 }
 
 
-
-
-
-
-
-
-
-
-
 /*
  * YouTube player API states
  * -1 (unstarted)
@@ -466,6 +520,8 @@ function PlaybackRateChange() {
  * 3 (buffering)
  * 5 (video cued)
  */
+
+//Event listener player status change
 function state() { 
 	
 	var currentState = player.getPlayerState();
@@ -602,8 +658,6 @@ function state() {
 		
 		if(currentState==1){
 			
-//			console.log("YouSlow: isInitialBuffering: "+isInitialBuffering);
-			
 			if(startTime != null){
 				endTime = new Date();
 				var timeDiff = endTime - startTime;
@@ -628,8 +682,8 @@ function state() {
 				var timeDiff = endBufferingTime - startBufferingTime;
 				bufferingDuration = bufferingDuration+timeDiff;
 				bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
-//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
 				elapsedTime = elapsedTime+timeDiff;
+//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
 //				console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
 //				console.log("YouSlow: elapsedTime- "+elapsedTime+" seconds.");
 			}
@@ -659,8 +713,8 @@ function state() {
 				var timeDiff = endBufferingTime - startBufferingTime;
 				bufferingDuration = bufferingDuration+timeDiff;
 				bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
-//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
 				elapsedTime = elapsedTime+timeDiff;
+//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
 //				console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
 //				console.log("YouSlow: elapsedTime- "+elapsedTime+" seconds.");
 			}
@@ -1027,6 +1081,12 @@ function bufferingStatusUpdate(){
 	    		}
 	    			
 	    		AllAdsLength = AllAdsLength+CurrentStartTime+"?";
+	    		
+	    		
+	    		// Start from beginning
+	    		if(CurrentStartTime=="0"){
+	    			AllAdsLength = CurrentStartTime+"?";
+	    		}
 //	    		console.log("UPDATE-AdsStartTime: "+AdsStartTime);
 //	    		console.log("UPDATE-AllAdsStart: "+CurrentStartTime);
 //	    		console.log("UPDATE-initialBufferingState: "+isInitialBuffering);

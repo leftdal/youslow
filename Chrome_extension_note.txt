@@ -1,3 +1,9 @@
+Chrome Extension
+================
+
+For 1.1.9
+	- Improving system
+	
 For 1.1.8
 	- Add video Ads length
 
