@@ -77,10 +77,11 @@ var fraction=0;
 var T_fraction=0;
 
 
-var version='Chrome 1.1.9';
+var version='Chrome 1.2.0';
 
 
 
+var stop_video_url_change_report=false;
 
 
 
@@ -117,7 +118,8 @@ function onYouTubePlayerReady(playerId) {
 	player.addEventListener("onStateChange", "state");
 	player.addEventListener("onPlaybackQualityChange", "PlaybackQualityChange");
 	player.addEventListener("onPlaybackRateChange", "PlaybackRateChange");
-	
+
+
 	
 	
 	/*
@@ -158,7 +160,6 @@ function onYouTubePlayerReady(playerId) {
 	 */
 	setTimeout(function(){
 		bufferingStatusUpdateValue = "InitialCheck";
-		video_url = player.getVideoUrl();
 		bufferingStatusUpdate();
 	},1000)
 
@@ -204,7 +205,48 @@ function onYouTubePlayerReady(playerId) {
 		}
          
 	},5000);
+	
+	
+	
+	
+
+	/*
+	 * Monitor video url changes since version 1.2.0
+	 */
+	setInterval(function(){
+		checkVideoURLchange();
+	},1000);
     
+}
+
+
+
+
+function checkVideoURLchange() {
+	current_video_url = player.getVideoUrl();
+//	console.log("YouSlow: url:"+player.getVideoUrl());
+	var tmp_video_url = current_video_url.split("v=");
+	// If it contains video URL
+	if(current_video_url.indexOf('v=') > -1 && video_url!=null){
+		if(video_url != tmp_video_url[1]){
+			if(video_url=="ALREADY REPORTED"){
+				console.log("YouSlow: Video ended and already reported!");
+				stop_video_url_change_report=true;
+			}else{
+				if(!stop_video_url_change_report){
+					console.log("YouSlow: either movie changed or report the previous saved data");
+//					console.log("prior_video_url: "+video_url);
+//					console.log("current_video_url: "+tmp_video_url[1]);
+					/*
+		        	 * Call locally saved event data and report for the video URL change events
+		        	 */
+		        	call_data_for_video_url_change_event();
+				}
+				stop_video_url_change_report=false;
+			}
+		}
+	}
+	video_url=tmp_video_url[1];
 }
 
 
@@ -551,6 +593,8 @@ function state() {
 		
 	}else if(currentState==0){
 		
+		// We monitor URL every second, the below flag prevents reporting data twice
+		video_url="ALREADY REPORTED";
 		
 		/*
 		 * Old version:
@@ -567,92 +611,14 @@ function state() {
 			elapsedTime = elapsedTime + seconds;
 			startTime = null;
 		}
-		report();
-		
-//		if(elapsedTime>0){
-//			
-//			if(startTime != null){
-//				endTime = new Date();
-//				var timeDiff = endTime - startTime;
-//				var timeDiff = timeDiff/1000;
-//				var seconds = Math.round(timeDiff);
-//				elapsedTime = elapsedTime + seconds;
-//				startTime = null;
-//			}
-//			
-//			report();
-//			
-//		}else{
-//			
-//			// Initiates
-//			isBuffering = false;
-//			bufferingDuration = 0;
-//			NumOfResolutionChanges = 1;
-//			requestedResolutions = player.getPlaybackQuality()+":";
-//			elapsedTime = 0;
-//			startTime = null;
-//			initialBufferingStartTime=null;
-//			initialBufferingEndTime=null;
-//			elapsedinitialBufferingTime=0;
-//			isInitialBuffering = false;
-//			video_url=null;
-//			avglatency='';
-//			requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
-//			numofrebufferings=0;
-//			bufferdurationwithtime='';
-//			//BufferStalling status update
-//			bufferingStatusUpdateValue = "DOWN(END)";
-//			bufferingStatusUpdate();
-//			AllAdsLength="";
-//			isMainVideoStarted=false;
-//			
-//		}
-		
+		report();	
 		
 	}else if(currentState==-1){
 		
-		current_video_url = player.getVideoUrl();
-
-		if(video_url != current_video_url){
-			console.log("YouSlow: Movie changed!");
-        	/*
-        	 * Call locally saved event data and report for the video URL change events
-        	 */
-        	call_data_for_video_url_change_event();
-		}
 		
 		isInitialBuffering = true;
 		initialBufferingStartTime = new Date();
-		
-		if(bufferingDuration>0){
-			
-			if(startTime != null){
-				endTime = new Date();
-				var timeDiff = endTime - startTime;
-				var timeDiff = timeDiff/1000;
-				var seconds = Math.round(timeDiff);
-				elapsedTime = elapsedTime + seconds;
-				startTime = null;
-			}
-			
-		}else{
-			
-			// Initiates
-			isBuffering = false;
-			bufferingDuration = 0;
-			NumOfResolutionChanges = 1;
-			requestedResolutions = player.getPlaybackQuality()+":";
-			elapsedTime = 0;
-			startTime = null;
-			requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
-			numofrebufferings=0;
-			bufferdurationwithtime='';
-			avglatency='';
-			available_video_quality='';
-			AllAdsLength="";
 
-		}
-		
 		
 	}else{
 		
@@ -845,8 +811,8 @@ function call_data_for_video_url_change_event(){
 		}
 		console.log("YouSlow: new video avail. bitrates - "+available_video_quality);
 		
-		isInitialBuffering = true;
-		initialBufferingStartTime = new Date();
+//		isInitialBuffering = true;
+//		initialBufferingStartTime = new Date();
 		
 	}
 
@@ -899,8 +865,8 @@ function call_data_for_video_url_change_event(){
 				  }
 			}
 			console.log("YouSlow: new video avail. bitrates - "+available_video_quality);
-			isInitialBuffering = true;
-			initialBufferingStartTime = new Date();
+//			isInitialBuffering = true;
+//			initialBufferingStartTime = new Date();
 		    
 		  }
 		}
@@ -914,7 +880,7 @@ function call_data_for_video_url_change_event(){
 
 
 // Every 5 seconds, we save data locally
-// CAUSION: CHROME QUOTA
+// CAUTION: CHROME QUOTA
 function bufferingStatusUpdate(){
 	
 	var localTime = new Date();
@@ -1156,7 +1122,7 @@ function bufferingStatusUpdate(){
         
         
         /*
-         * Abandonment
+         * Report Abandonment in case that video session closes before reporting data
          * 0 : Video ended
          * 1 : Previously Stopped by BufferStalling
          * 2 : Previously Stopped by Clients
@@ -1165,17 +1131,15 @@ function bufferingStatusUpdate(){
     		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByBufferStalling!");
     		previouslyAbandonedDuetoBuffering=1;
     		reportWithPreviousData();
-    		video_url=null;
     		
     	}else if(T_bufferflag=="DOWN" || T_bufferflag==null){
-//    		console.log("YouSlow: Previously--NOT--stoppedbyAdandonmentDuetoBufferStalling!");
+    		console.log("YouSlow: Previously--NOT--stoppedbyAdandonmentDuetoBufferStalling!");
     		previouslyAbandonedDuetoBuffering=0;
     		
     	}else if(T_bufferflag=="DOWN(PLAYING)"){
     		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByClients!");
     		previouslyAbandonedDuetoBuffering=2;
     		reportWithPreviousData();
-    		video_url=null;
     		
     	}
         document.removeEventListener('fetchResponse', respListener);

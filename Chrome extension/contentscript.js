@@ -99,6 +99,7 @@ function SendMessageToBackgroundPage(data)
 		  avglatency=response2.getavglatency;
 		  detectedURL=response2.detectedURL;
 		  isVideoAds=response2.isVideoAds;
+		  
 //		  console.log("Video URL: "+currentURL);
 //		  console.log("detected URL: "+detectedURL);
 //		  console.log("isVideoAds: "+isVideoAds);
