@@ -11,21 +11,16 @@ var org = 'none';
 var startBufferingTime =0;
 var isBuffering = false;
 var isloaded=false;
-
 var NumOfResolutionChanges=1;
 var requestedResolutions = '';
-
 var startTime=null;
 var endTime=null;
 var elapsedTime=0;
-
 var isMainVideoStarted=false;
-
 var initialBufferingStartTime=null;
 var initialBufferingEndTime=null;
 var elapsedinitialBufferingTime=0;
 var isInitialBuffering = false;
-
 var bufferingStatusUpdateValue="";
 var previouslyAbandonedDuetoBuffering = 0;
 var avglatency="";
@@ -33,13 +28,9 @@ var timeReport =null;
 var AllAdsLength="";
 var isPlayingAds=false;
 var isPlayingMainVideo=false;
-
 var AdsStartTime=0;
 var AdsEndTime=0;
-
-
 var resultsFromContentScript="";
-
 
 var T_AllAdsLength="";
 var T_localtime=null;
@@ -57,34 +48,27 @@ var T_initialbufferingtime=null;
 var T_abandonment=null;
 var T_bufferflag=null;
 var T_avglatency=null;
-
-var video_url=null;
-var current_video_url=null;
-
-
-var requestedresolutionswithtime='';
-var numofrebufferings=0;
-var bufferdurationwithtime='';
 var T_requestedresolutionswithtime='';
 var T_numofrebufferings=0;
 var T_bufferdurationwithtime='';
-
-
-var available_video_quality='';
+var T_fraction=0;
 var T_available_video_quality='';
 
+var video_url=null;
+var current_video_url=null;
+var requestedresolutionswithtime='';
+var numofrebufferings=0;
+var bufferdurationwithtime='';
+var available_video_quality='';
 var fraction=0;
-var T_fraction=0;
-
-
-var version='Chrome 1.2.0';
-
-
-
 var stop_video_url_change_report=false;
+var PlaybackQualityChange_before='';
+var bufferdurationwithtime_start_elapsedTime='';
+var elapsedinitialBufferingTime_first=0;
+var elapsedinitialBufferingTime_second=0;
+var elapsedinitialBufferingTime_stop_report=false;
 
-
-
+var version='Chrome 1.2.2';
 
 
 function onYouTubePlayerReady(playerId) {
@@ -92,62 +76,25 @@ function onYouTubePlayerReady(playerId) {
 	if(!isloaded){
 		isloaded = true;
 		console.log("YouSlow: New video session started!");
+
+		/*
+		 * Locally obtain client IP address and geo-location information
+		 */
 		IP = getIP();
-		//console.log("Public IP: "+IP);
-		getUserInfo();
-				
+		getUserInfo();		
 	}
 	
+
 	player = document.getElementById("movie_player");
+
 	
-	
-	//In case that, fail to detect video players in Chrome browsers
+	/*
+	 * In case that, fail to detect video players in Chrome browsers
+	 */
 	if(player == null)
 		player = document.getElementById("ytPlayer");
 	if(player == null)
 		player = document.getElementById("myytplayer");
-		
-	
-	requestedResolutions = player.getPlaybackQuality()+":";
-
-	
-	
-	/*
-	 * addEventListener
-	 */
-	player.addEventListener("onStateChange", "state");
-	player.addEventListener("onPlaybackQualityChange", "PlaybackQualityChange");
-	player.addEventListener("onPlaybackRateChange", "PlaybackRateChange");
-
-
-	
-	
-	/*
-		check initial bufferingTime after player loaded
-		This prevents from being too late to get initial player status, in order to measure initial buffering time
-		Initial buffering time: from the instant the video player has been loaded to it is actually playing the video
-	*/
-	var initialState = player.getPlayerState();
-	
-	
-	// Gather all available bitrates of the video
-	available_video_quality = '';
-	var quality_list = player.getAvailableQualityLevels();
-	for (var prop in quality_list) {
-		  if (quality_list.hasOwnProperty(prop)) {
-			  available_video_quality = available_video_quality+quality_list[prop]+":";
-		  }
-	}
-	console.log(available_video_quality);
-
-	
-	
-	// Start measuring InitialBuffering time
-	if(initialState==-1){
-		isInitialBuffering = true;
-		initialBufferingStartTime = new Date();
-		elapsedTime=0;
-	}
 	
 	
 	
@@ -159,50 +106,121 @@ function onYouTubePlayerReady(playerId) {
 	 * Wait for just 1 second until it gets IP and basic ISP information
 	 */
 	setTimeout(function(){
+		report_previously_closed_events();
 		bufferingStatusUpdateValue = "InitialCheck";
 		bufferingStatusUpdate();
 	},1000)
+	
+	
+	
+	/*
+	 * Save default playbackQuality
+	 */
+	requestedResolutions = player.getPlaybackQuality()+":";
+	PlaybackQualityChange_before=player.getPlaybackQuality();
+	requestedresolutionswithtime='0?'+player.getPlaybackQuality()+":";
+	
+	
+	/*
+	 * addEventListener
+	 */
+	player.addEventListener("onStateChange", "state");
+	player.addEventListener("onPlaybackQualityChange", "PlaybackQualityChange");
+	
 
 	
 	/*
-	 * BufferStalling status update every 5 seconds
-	 * Quota limits 10 per a minute for sync
+	 * Since version 1.2.1 we omit playback rate change
+	 * player.addEventListener("onPlaybackRateChange", "PlaybackRateChange");
 	 */
-	setInterval(function(){
-		
-		//update current video loaded fraction
-		fraction = player.getVideoLoadedFraction();
 
-		var initialState = player.getPlayerState();
+
+	
+	
+	/*
+	 * check initial bufferingTime after player loaded
+	 * This prevents from being too late to get initial player status, in order to measure initial buffering time
+	 * Initial buffering time: from the instant the video player has been loaded to it is actually playing the video
+	*/
+	var initialState = player.getPlayerState();
+	if(initialState==-1){
+		isInitialBuffering = true;
+		initialBufferingStartTime = new Date();
+	}
 		
-		if(startTime != null){
+
+	
+	
+	
+	/*
+	 * Gather all available bitrates of the video
+	 */
+	available_video_quality = '';
+	var quality_list = player.getAvailableQualityLevels();
+	for (var prop in quality_list) {
+		  if (quality_list.hasOwnProperty(prop)) {
+			  available_video_quality = available_video_quality+quality_list[prop]+":";
+		  }
+	}
+
+	
+
+	
+	/*
+	 * Since version 1.2.1
+	 * no longer use to add elapsed time every 5seconds
+	 if(startTime != null){
 			endTime = new Date();
 			var timeDiff = endTime - startTime;
 			var timeDiff = timeDiff/1000;
 			var seconds = Math.round(timeDiff);
 			elapsedTime = elapsedTime + seconds;
 			startTime = null;
-		}
+	 }
+	 */
 
 
+	
+	
+
+	/* Instead,
+	 * automatically increases elapsedTime by 1
+	 */
+	setInterval(function(){
+		elapsedTime = elapsedTime+1;
+	},1000);
+	
+	
+	
+	
+	
+	/*
+	 * Locally saved every 5seconds and every time player's status changes
+	 * Quota limits 10 per a minute for sync
+	 * This is for the case where client closes browser without reporting data
+	 * The old measurement will be reported when the client watches video again
+	 */
+	setInterval(function(){
+		
+		/*
+		 * update current video loaded fraction
+		 */
+		fraction = player.getVideoLoadedFraction();
+
+		var initialState = player.getPlayerState();
         if(initialState==1){ // Video playing
-        	if(!isMainVideoStarted){
-        		isMainVideoStarted=true;
-        	}
-        	startTime = new Date();
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
 			bufferingStatusUpdate();
 		}else if(initialState==-1){ // Video not started
 			bufferingStatusUpdateValue = "NOT STARTED";
 			bufferingStatusUpdate();
-			isInitialBuffering = true;
-			initialBufferingStartTime = new Date();		
 		}else if(initialState==0){ // Video ended
 			bufferingStatusUpdateValue = "DOWN(END)";
 		}else if(initialState==3){ // Video rebuffering
 			bufferingStatusUpdateValue = "UP";
 			bufferingStatusUpdate();
 		}
+        
          
 	},5000);
 	
@@ -217,6 +235,8 @@ function onYouTubePlayerReady(playerId) {
 		checkVideoURLchange();
 	},1000);
     
+
+
 }
 
 
@@ -224,7 +244,6 @@ function onYouTubePlayerReady(playerId) {
 
 function checkVideoURLchange() {
 	current_video_url = player.getVideoUrl();
-//	console.log("YouSlow: url:"+player.getVideoUrl());
 	var tmp_video_url = current_video_url.split("v=");
 	// If it contains video URL
 	if(current_video_url.indexOf('v=') > -1 && video_url!=null){
@@ -235,12 +254,14 @@ function checkVideoURLchange() {
 			}else{
 				if(!stop_video_url_change_report){
 					console.log("YouSlow: either movie changed or report the previous saved data");
-//					console.log("prior_video_url: "+video_url);
-//					console.log("current_video_url: "+tmp_video_url[1]);
+
+					
 					/*
 		        	 * Call locally saved event data and report for the video URL change events
 		        	 */
 		        	call_data_for_video_url_change_event();
+
+				
 				}
 				stop_video_url_change_report=false;
 			}
@@ -251,35 +272,24 @@ function checkVideoURLchange() {
 
 
 
+/*
+ * Obtaion client IP locally
+ */
 function getIP() {
-    
 	if (window.XMLHttpRequest) xmlhttp = new XMLHttpRequest();
     else xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
-		
 	console.log("YouSlow: We use api.ipify.info to find a host IP address.");
-	//    xmlhttp.open("GET","http://api.hostip.info/get_html.php",false);
     xmlhttp.open("GET","https://api.ipify.org/",false);
     xmlhttp.send();
-
     hostipInfo = xmlhttp.responseText.trim();
     if(hostipInfo.length>3)
     	return hostipInfo;
-//    hostipInfo = xmlhttp.responseText.split("\n");
-//    console.log("hostipInfo: "+hostipInfo);
-//    for (i=0; hostipInfo.length >= i; i++) {
-//        ipAddress = hostipInfo[i].split(":");
-//        if ( ipAddress[0] == "IP" ) return ipAddress[1];
-//    }
-
     return false;
 }
 
 
 
 function getUserInfo(){
-	
-	//	var videoInfoURL = "http://api.ipaddresslabs.com/iplocation/v1.7/locateip?key=demo&ip="+IP.trim()+"&format=XML";
-	//	var userInfoURL = "http://ipinfo.io/"+IP.trim()+"/json";
 	
 	/*
 	 * Request Dyswis server to find the geolocation info.
@@ -291,22 +301,24 @@ function getUserInfo(){
 	var xhr = new XMLHttpRequest();
 	xhr.open("GET", userInfoURL, true);
 	xhr.onreadystatechange = function() {
-//		console.log("YouSlow obj: "+xhr.readyState);
-//		console.log("YouSlow obj: "+xhr.responseText);
 	  if (xhr.readyState == 4) {
 		  
 		var resp = xhr.responseText;
 	    var obj = JSON.parse(resp);
+
 	    
-//	     console.log("YouSlow obj: "+resp);
-//	     console.log("YouSlow 1: "+obj.ip);
-//	     console.log("YouSlow 2: "+obj.hostname);
-//	     console.log("YouSlow 3: "+obj.city);
-//	     console.log("YouSlow 4: "+obj.region);
-//	     console.log("YouSlow 5: "+obj.country);
-//	     console.log("YouSlow 6: "+obj.loc);
-//	     console.log("YouSlow 7: "+obj.org);
-//	    
+	    /*
+	     console.log("YouSlow obj: "+resp);
+	     console.log("YouSlow 1: "+obj.ip);
+	     console.log("YouSlow 2: "+obj.hostname);
+	     console.log("YouSlow 3: "+obj.city);
+	     console.log("YouSlow 4: "+obj.region);
+	     console.log("YouSlow 5: "+obj.country);
+	     console.log("YouSlow 6: "+obj.loc);
+	     console.log("YouSlow 7: "+obj.org);
+	     */
+
+	    
 	    hostname = obj.hostname;
 	    city = obj.city;
 	    region = obj.region;
@@ -339,15 +351,15 @@ function getUserInfo(){
 
 	
 	
-	/*
+	/* There is quota limit
 	 * If TOO many request happen
 	 * We take alternative solutions
 	 */
 	if(country == 'none'){
-
 		
-//	    console.log("We use ip-api.com");
-
+		/*
+		 * We use ip-api.com
+		 */
 		var userInfoURL = "https://dyswis.cs.columbia.edu/youslow/getinfo_ip_api.php?"+IP.trim();
 		var xhr3 = new XMLHttpRequest();
 		xhr3.open("GET", userInfoURL, true);
@@ -384,30 +396,39 @@ function getUserInfo(){
 			    	org = org.trim();
 			    }
 			    
-//			    console.log("YouSlow hostname: "+hostname);
-//			    console.log("YouSlow city: "+city);
-//			    console.log("YouSlow region: "+region);
-//			    console.log("YouSlow country: "+country);
-//			    console.log("YouSlow loc: "+loc);
-//			    console.log("YouSlow org: "+org);
-
+			    /*
+			    console.log("YouSlow hostname: "+hostname);
+			    console.log("YouSlow city: "+city);
+			    console.log("YouSlow region: "+region);
+			    console.log("YouSlow country: "+country);
+			    console.log("YouSlow loc: "+loc);
+			    console.log("YouSlow org: "+org);
+				*/
 			}
 		}
 		
 		xhr3.send();
+
 		
 		
-		// If we failed for both cases due tio Quota limit,
-		// We try to get the GeoInfo from the Client's side.
+		/*
+		 * If we failed for both cases due to quota limit,
+		 * We try to get the GeoInfo from the Client's side.
+		 * Wait for 1second until geo-location data updated.
+		 */
 		setTimeout(function(){
 			GetGeoInfoClientSide();
-		},1000)
+		},1000);
 	
+		
+		
 	}
 	
 
 	
 }
+
+
 
 
 function GetGeoInfoClientSide() {
@@ -416,6 +437,7 @@ function GetGeoInfoClientSide() {
 	/*
 	 * If TOO many request happen
 	 * We take alternative solutions
+	 * Contain hardcoded implementation - not preferred
 	 */
 	
 	if(country == 'none'){
@@ -447,8 +469,12 @@ function GetGeoInfoClientSide() {
 
 			  for (i=0;i<split_new_resp.length;i++){
 				  if(split_new_resp[i].trim().length>1){
-					  // console.log(i+":"+split_new_resp[i]);
-					  // Hardcoded
+					  
+					  /*
+					   * This is hardcoded 
+					   * Parsing web contents
+					   * highly not preferred
+					   */
 					  var split_new_resp2 = split_new_resp[i].split(":");
 					  
 					  if (split_new_resp[i].indexOf("hostname") > -1){
@@ -486,25 +512,26 @@ function GetGeoInfoClientSide() {
 		    	org = org.trim();
 		    }
 		    
-		    // Hardcoded
+		  /*
+		   * This is hardcoded 
+		   * Parsing web contents
+		   * highly not preferred
+		   */
 		    if(country=='none'){
 				  for (i=0;i<split_resp2.length;i++){
 					  if(split_resp2[i].indexOf("<td>Network</td>") > -1){
-//						  console.log(i+":"+split_resp2[i+1]);
 						  var temp=split_resp2[i+1];
 						  var temp_split = temp.split("</a>");
 						  var temp_hostname = temp_split[1];
 						  temp_hostname = temp_hostname.replace("</td>", "");
 						  org=temp_hostname.trim();
 					  }else if(split_resp2[i].indexOf("<td>City</td>") > -1){
-//						  console.log(i+":"+split_resp2[i+3]);
 						  var temp=split_resp2[i+3];
 						  var temp_split = temp.split(", ");
 						  city = temp_split[0].trim();
 						  region = temp_split[1].trim();
 						  country = temp_split[2].trim();
 					  }else if(split_resp2[i].indexOf("<td>Latitude/Longitude</td>") > -1){
-//						  console.log(i+":"+split_resp2[i+1]);
 						  var temp=split_resp2[i+1];
 						  var temp_split = temp.split("\"");
 						  loc = temp_split[1].trim();
@@ -512,13 +539,14 @@ function GetGeoInfoClientSide() {
 				  }		    	
 		    }
 		    
-//		    console.log("YouSlow hostname: "+hostname);
-//		    console.log("YouSlow city: "+city);
-//		    console.log("YouSlow region: "+region);
-//		    console.log("YouSlow country: "+country);
-//		    console.log("YouSlow loc: "+loc);
-//		    console.log("YouSlow org: "+org);
-
+		    /*
+		    console.log("YouSlow hostname: "+hostname);
+		    console.log("YouSlow city: "+city);
+		    console.log("YouSlow region: "+region);
+		    console.log("YouSlow country: "+country);
+		    console.log("YouSlow loc: "+loc);
+		    console.log("YouSlow org: "+org);
+		     */
 	
 		  }
 		}
@@ -529,32 +557,65 @@ function GetGeoInfoClientSide() {
 }
 
 
-// Event listener PlaybackQualityChange
+
+
+
+
+
+
+
+
+/*
+ * Event listener for PlaybackQualityChange
+ */
 function PlaybackQualityChange() { 
-	
 	var currentState = player.getPlaybackQuality();
-	requestedResolutions = requestedResolutions+currentState+":";
-	requestedresolutionswithtime = requestedresolutionswithtime+elapsedTime.toString()+"?"+currentState+":";
-	console.log("YouSlow: PlaybackQualityChange- "+currentState);
-//	console.log("YouSlow requestedresolutionswithtime: "+requestedresolutionswithtime);
-	NumOfResolutionChanges = NumOfResolutionChanges+1;
-	
+	if(PlaybackQualityChange_before != currentState){
+		requestedResolutions = requestedResolutions+currentState+":";
+		requestedresolutionswithtime = requestedresolutionswithtime+elapsedTime.toString()+"?"+currentState+":";
+		console.log("YouSlow: PlaybackQualityChange- "+currentState);
+		NumOfResolutionChanges = NumOfResolutionChanges+1;
+	}
+	PlaybackQualityChange_before=currentState;
 }
 
-//Event listener PlaybackRateChange
+
+
+
+
+
+
+
+
+/*
+ * Since version 1.2.1
+ * We do not monitor playbackratechange
+ *
+/*
 function PlaybackRateChange() { 
 	var currentState = player.getPlaybackRate();
 	requestedResolutions = requestedResolutions+currentState+":";
 	requestedresolutionswithtime = requestedresolutionswithtime+elapsedTime.toString()+"?"+currentState+":";
 	console.log("YouSlow: PlaybackRateChange- "+currentState);
-//	console.log("YouSlow requestedresolutionswithtime: "+requestedresolutionswithtime);
 	NumOfResolutionChanges = NumOfResolutionChanges+1;
 	
 }
+*/
+
+
+
+
+
+
+
+
+
+
+
 
 
 /*
- * YouTube player API states
+ * YouTube player status
  * -1 (unstarted)
  * 0 (ended)
  * 1 (playing)
@@ -563,7 +624,9 @@ function PlaybackRateChange() {
  * 5 (video cued)
  */
 
-//Event listener player status change
+/*
+ * Event listener for player status change
+ */
 function state() { 
 	
 	var currentState = player.getPlayerState();
@@ -572,50 +635,32 @@ function state() {
 	if(currentState==3){
 		
 		if(!isBuffering){
+			
 			startBufferingTime = Math.ceil(new Date().getTime() / 1000);
 			isBuffering = true;
 			
-			//BufferStalling status update
+			/*
+			 * BufferStalling status update
+			 */
 			bufferingStatusUpdateValue = "UP";
-			numofrebufferings = numofrebufferings+1;
-			bufferdurationwithtime = bufferdurationwithtime+elapsedTime.toString()+'?';
+			bufferdurationwithtime_start_elapsedTime=elapsedTime.toString();
 			bufferingStatusUpdate();
-		}
-		
-		if(startTime != null){
-			endTime = new Date();
-			var timeDiff = endTime - startTime;
-			var timeDiff = timeDiff/1000;
-			var seconds = Math.round(timeDiff);
-			elapsedTime = elapsedTime + seconds; // Total playback time also contains the length of bufferStalling time
-			startTime = null;
 		}
 		
 	}else if(currentState==0){
 		
-		// We monitor URL every second, the below flag prevents reporting data twice
-		video_url="ALREADY REPORTED";
-		
 		/*
-		 * Old version:
-		 * 	Report only when elapsedTime>0
-		 * 
-		 * From Jan-17-2015 
-		 * 	EDIT: we report even elapsedTime == 0 in case that it closes during initial buffering or Ads
+		 * We monitor URL every second 
+		 * The following flag prevents reporting data twice
 		 */
-		if(startTime != null){
-			endTime = new Date();
-			var timeDiff = endTime - startTime;
-			var timeDiff = timeDiff/1000;
-			var seconds = Math.round(timeDiff);
-			elapsedTime = elapsedTime + seconds;
-			startTime = null;
-		}
+		video_url="ALREADY REPORTED";
 		report();	
 		
 	}else if(currentState==-1){
 		
-		
+		/*
+		 * Turn on initial buffering measurements
+		 */
 		isInitialBuffering = true;
 		initialBufferingStartTime = new Date();
 
@@ -623,69 +668,77 @@ function state() {
 	}else{
 		
 		if(currentState==1){
+
+			if(!isMainVideoStarted){
+        		isMainVideoStarted=true;
+        	}
 			
-			if(startTime != null){
-				endTime = new Date();
-				var timeDiff = endTime - startTime;
-				var timeDiff = timeDiff/1000;
-				var seconds = Math.round(timeDiff);
-				elapsedTime = elapsedTime + seconds;
-			}
-			
-			startTime = new Date();
-						
 			if(isInitialBuffering){
 				isInitialBuffering = false;
 				initialBufferingEndTime = new Date();
 				var timeDiff = initialBufferingEndTime - initialBufferingStartTime;
 				elapsedinitialBufferingTime = timeDiff;
 				console.log("YouSlow: elapsedinitialBufferingTime: "+elapsedinitialBufferingTime);
+				
+				if(elapsedinitialBufferingTime_first==0){
+					elapsedinitialBufferingTime_first=elapsedinitialBufferingTime;
+				}else if(elapsedinitialBufferingTime_second==0){
+					elapsedinitialBufferingTime_second=elapsedinitialBufferingTime;
+				}
 			}
 			
 			if(isBuffering){
 				isBuffering = false;
 				var endBufferingTime = Math.ceil(new Date().getTime() / 1000);
 				var timeDiff = endBufferingTime - startBufferingTime;
-				bufferingDuration = bufferingDuration+timeDiff;
-				bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
-				elapsedTime = elapsedTime+timeDiff;
-//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
-//				console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
-//				console.log("YouSlow: elapsedTime- "+elapsedTime+" seconds.");
+				
+				/*
+				 * We only update if buffering length > 0
+				 */
+				if(timeDiff>0){
+					numofrebufferings = numofrebufferings+1;
+					bufferingDuration = bufferingDuration+timeDiff;
+					bufferdurationwithtime = bufferdurationwithtime+bufferdurationwithtime_start_elapsedTime+'?'+timeDiff.toString()+':';
+					bufferdurationwithtime_start_elapsedTime='';
+//					console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
+//					console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
+//					console.log("YouSlow: elapsedTime- "+elapsedTime+" seconds.");
+				}
 			}
 			
-			//BufferStalling status update
+			/*
+			 * BufferStalling status update
+			 */
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
 			bufferingStatusUpdate();
-			
+			isInitialBuffering = false;
 			
 		}
 		
 		if(currentState==2){
 			
-			if(startTime != null){
-				endTime = new Date();
-				var timeDiff = endTime - startTime;
-				var timeDiff = timeDiff/1000;
-				var seconds = Math.round(timeDiff);
-				elapsedTime = elapsedTime + seconds;
-				startTime = null;
-			}
-			
-			
 			if(isBuffering){
 				isBuffering = false;
 				var endBufferingTime = Math.ceil(new Date().getTime() / 1000);
 				var timeDiff = endBufferingTime - startBufferingTime;
-				bufferingDuration = bufferingDuration+timeDiff;
-				bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
-				elapsedTime = elapsedTime+timeDiff;
-//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
-//				console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
-//				console.log("YouSlow: elapsedTime- "+elapsedTime+" seconds.");
+				
+				/*
+				 * We only update if buffering length > 0
+				 */
+				if(timeDiff>0){
+					numofrebufferings = numofrebufferings+1;
+					bufferingDuration = bufferingDuration+timeDiff;
+					bufferdurationwithtime = bufferdurationwithtime+bufferdurationwithtime_start_elapsedTime+'?'+timeDiff.toString()+':';
+					bufferdurationwithtime_start_elapsedTime='';
+	//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
+	//				console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
+	//				console.log("YouSlow: elapsedTime- "+elapsedTime+" seconds.");
+				}
 			}
 			
-			//BufferStalling status update
+			/*
+			 * BufferStalling status update
+			 */
 			bufferingStatusUpdateValue = "DOWN(PAUSED)";
 			bufferingStatusUpdate();
 		}
@@ -696,7 +749,9 @@ function state() {
 
 
 
-// initialize data
+/*
+ * initialize all parameters
+ */
 function initialData(){
 	isBuffering = false;
 	bufferingDuration = 0;
@@ -706,7 +761,7 @@ function initialData(){
 	startTime = null;
 	initialBufferingStartTime=null;
 	initialBufferingEndTime=null;
-	elapsedinitialBufferingTime=0;
+//	elapsedinitialBufferingTime=0;
 	isInitialBuffering = false;
 	previouslyAbandonedDuetoBuffering = 0;
 	avglantecy="";
@@ -724,7 +779,9 @@ function initialData(){
 
 
 
-//initialize locally saved data
+/*
+ * initialize all locally saved parameters
+ */
 function initialData_T(){
 	T_isBuffering = false;
 	T_bufferingDuration = 0;
@@ -734,7 +791,7 @@ function initialData_T(){
 	T_startTime = null;
 	T_initialBufferingStartTime=null;
 	T_initialBufferingEndTime=null;
-	T_elapsedinitialBufferingTime=0;
+//	T_elapsedinitialBufferingTime=0;
 	T_isInitialBuffering = false;
 	T_previouslyAbandonedDuetoBuffering = 0;
 	T_avglantecy="none";
@@ -784,16 +841,12 @@ function call_data_for_video_url_change_event(){
 	}
 		
 	
-	//Disable for the case where viewers close during Ads	
-//	if(bufferingDuration>elapsedTime)
-//		isGood = false;	
-//	if(elapsedTime<1)
-//		isGood = false;
 	
 	/*
 	 * The below msg appears if no good, No-good msg prevents the unnecssarry report when the url changes 
 	 */
 	if(!isGood){
+		
 		console.log('No good at call_data_for_video_url_change_event');
 		console.log("YouSlow: Decline report request!");
 
@@ -809,15 +862,36 @@ function call_data_for_video_url_change_event(){
 				  available_video_quality = available_video_quality+quality_list[prop]+":";
 			  }
 		}
-		console.log("YouSlow: new video avail. bitrates - "+available_video_quality);
 		
-//		isInitialBuffering = true;
-//		initialBufferingStartTime = new Date();
 		
 	}
 
 	
-	// Report measurements for previouly closed video based on the locally saved measurements
+	/*
+	 * We consider two initial elpased-time
+	 * This prevents from being reported after newly measured initial buffering time replaces the old value
+	 * But, need to first report the old value
+	 */
+	var tmp_elapsedinitialBufferingTime=0;
+	if(elapsedinitialBufferingTime_first!=0 && elapsedinitialBufferingTime_second==0){
+		if(!elapsedinitialBufferingTime_stop_report){
+			tmp_elapsedinitialBufferingTime=0;
+			elapsedinitialBufferingTime_stop_report=true;
+		}else{
+			tmp_elapsedinitialBufferingTime=elapsedinitialBufferingTime_first;
+			elapsedinitialBufferingTime_first=elapsedinitialBufferingTime_second;
+			elapsedinitialBufferingTime_second=0;
+		}
+	}else if(elapsedinitialBufferingTime_first!=0){
+		tmp_elapsedinitialBufferingTime=elapsedinitialBufferingTime_first;
+		elapsedinitialBufferingTime_first=elapsedinitialBufferingTime_second;
+		elapsedinitialBufferingTime_second=0;
+	}
+
+	
+	/*
+	 * Report measurements for previouly closed video based on the locally saved measurements
+	 */
 	if(isGood){
 	    var URLparameters = "localtime="+timeReport	
 							+"&hostname="+window.localStorage.getItem("hostname")
@@ -833,7 +907,7 @@ function call_data_for_video_url_change_event(){
 							+"&requestedresolutions="+window.localStorage.getItem("requestedresolutions")
 							+"&requestedresolutionswithtime="+window.localStorage.getItem("requestedresolutionswithtime")
 							+"&timelength="+window.localStorage.getItem("timelength")
-							+"&initialbufferingtime="+window.localStorage.getItem("initialbufferingtime")
+							+"&initialbufferingtime="+tmp_elapsedinitialBufferingTime.toString()
 							+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()+":"+window.localStorage.getItem("fraction")
 							+"&avglatency="+T_avglatency //Should get T_avglatency
 							+"&allquality="+window.localStorage.getItem("allquality")
@@ -849,14 +923,15 @@ function call_data_for_video_url_change_event(){
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", videoInfoURL, true);
 		xhr.onreadystatechange = function() {
-		  //console.log("HTTP STATE: "+xhr.readyState);
 		  if (xhr.readyState == 4) {
 		    console.log("YouSlow: buffering events reported for video URL changes...");
 		    previouslyAbandonedDuetoBuffering=0;
 		    
 		    initialData();
 		    
-		    // update list for the current video
+		    /*
+		     * update all bitrates for the current video
+		     */
 			available_video_quality = '';
 			var quality_list = player.getAvailableQualityLevels();
 			for (var prop in quality_list) {
@@ -864,9 +939,7 @@ function call_data_for_video_url_change_event(){
 					  available_video_quality = available_video_quality+quality_list[prop]+":";
 				  }
 			}
-			console.log("YouSlow: new video avail. bitrates - "+available_video_quality);
-//			isInitialBuffering = true;
-//			initialBufferingStartTime = new Date();
+			
 		    
 		  }
 		}
@@ -877,10 +950,68 @@ function call_data_for_video_url_change_event(){
 
 
 
+function report_previously_closed_events(){
+
+	console.log("YouSlow: Page reloaded..checking previously unreported data!");
+	
+	/*
+	 * Only call when refresh the webpage
+	 */
+	document.addEventListener('fetchResponse', function respListener(event) {
+		
+		T_localtime = event.detail.localtime;	
+        T_hostname = event.detail.hostname;
+        T_city = event.detail.city;
+        T_region = event.detail.region;
+        T_country = event.detail.country;
+        T_loc = event.detail.loc;
+        T_org = event.detail.org;
+        T_bufferduration = event.detail.bufferduration;
+        T_resolutionchanges = event.detail.resolutionchanges;
+        T_requestedresolutions = event.detail.requestedresolutions;
+        T_timelength = event.detail.timelength;
+        T_initialbufferingtime = event.detail.initialbufferingtime;
+        T_abandonment = event.detail.abandonment;
+        T_bufferflag = event.detail.bufferflag;
+        T_avglatency = event.detail.avglatency;
+        T_numofrebufferings = event.detail.numofrebufferings;
+        T_bufferdurationwithtime = event.detail.bufferdurationwithtime;
+        T_requestedresolutionswithtime = event.detail.requestedresolutionswithtime;
+        T_available_video_quality = event.detail.allquality;
+        T_fraction = event.detail.fraction;
+        T_AllAdsLength=event.detail.AllAdsLength;
+
+        /*
+         * Report Abandonment in case that video session closes before reporting data
+         * 0 : Video ended
+         * 1 : Previously Stopped by BufferStalling
+         * 2 : Previously Stopped by Clients
+         */
+        if(T_bufferflag=="UP"){
+    		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByBufferStalling!");
+    		previouslyAbandonedDuetoBuffering=1;
+    		reportWithPreviousData();
+    		
+    	}else if(T_bufferflag=="DOWN" || T_bufferflag==null){
+    		console.log("YouSlow: Previously--NOT--stoppedbyAdandonmentDuetoBufferStalling!");
+    		previouslyAbandonedDuetoBuffering=0;
+    		
+    	}else if(T_bufferflag=="DOWN(PLAYING)"){
+    		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByClients!");
+    		previouslyAbandonedDuetoBuffering=2;
+    		reportWithPreviousData();
+    	}
+        document.removeEventListener('fetchResponse', respListener);
+        
+    });
+		
+}
 
 
-// Every 5 seconds, we save data locally
-// CAUTION: CHROME QUOTA
+
+/*
+ * Every 5 seconds, we save data locally
+ */
 function bufferingStatusUpdate(){
 	
 	var localTime = new Date();
@@ -891,12 +1022,11 @@ function bufferingStatusUpdate(){
     var minutes = localTime.getMinutes()+'';
     var seconds = localTime.getSeconds()+'';    
     timeReport = year+"-"+month+"-"+date+" "+hours+":"+minutes+":"+seconds;
-    
+
     /*
      * To prevent from reporting data after the new data is replaced
      * Therefore wait for 4 seconds, during the time, report data for video URL change events
      */
-    
     if(elapsedTime>4){
 
     	
@@ -962,7 +1092,6 @@ function bufferingStatusUpdate(){
 	    
 	    	    
 	    
-	    
 		available_video_quality = '';
 		var quality_list = player.getAvailableQualityLevels();
 		for (var prop in quality_list) {
@@ -1014,7 +1143,9 @@ function bufferingStatusUpdate(){
 	
 	
 	
-	// listen for getFromContentScript
+	/*
+	 * event listener for getFromContentScript
+	 */
 	document.addEventListener('getFromContentScript', function(event) {
 	    var dataFromPage = event.detail;
 	    resultsFromContentScript=dataFromPage;
@@ -1049,7 +1180,9 @@ function bufferingStatusUpdate(){
 	    		AllAdsLength = AllAdsLength+CurrentStartTime+"?";
 	    		
 	    		
-	    		// Start from beginning
+	    		/*
+	    		 * Start from beginning
+	    		 */
 	    		if(CurrentStartTime=="0"){
 	    			AllAdsLength = CurrentStartTime+"?";
 	    		}
@@ -1085,66 +1218,6 @@ function bufferingStatusUpdate(){
 	});
 	
 	
-	
-	// Only call when refresh the webpage
-	document.addEventListener('fetchResponse', function respListener(event) {
-		
-		T_localtime = event.detail.localtime;	
-        T_hostname = event.detail.hostname;
-        T_city = event.detail.city;
-        T_region = event.detail.region;
-        T_country = event.detail.country;
-        T_loc = event.detail.loc;
-        T_org = event.detail.org;
-        T_bufferduration = event.detail.bufferduration;
-        T_resolutionchanges = event.detail.resolutionchanges;
-        T_requestedresolutions = event.detail.requestedresolutions;
-        T_timelength = event.detail.timelength;
-        T_initialbufferingtime = event.detail.initialbufferingtime;
-        T_abandonment = event.detail.abandonment;
-        T_bufferflag = event.detail.bufferflag;
-        T_avglatency = event.detail.avglatency;
-        T_numofrebufferings = event.detail.numofrebufferings;
-        T_bufferdurationwithtime = event.detail.bufferdurationwithtime;
-        T_requestedresolutionswithtime = event.detail.requestedresolutionswithtime;
-        T_available_video_quality = event.detail.allquality;
-        T_fraction = event.detail.fraction;
-        T_AllAdsLength=event.detail.AllAdsLength;
-
-//        console.log("YouSlow: LocalStatus referesh - "+T_localtime+"&"+T_hostname+"&"+T_city+"&"+T_region+"&"+T_country+"&"+T_loc+"&"+T_org+"&"+T_bufferduration+"&"+T_resolutionchanges+"&"+T_requestedresolutions+"&"+T_timelength+"&"+T_initialbufferingtime+"&"+T_abandonment+"&"+T_bufferflag+"&"+T_avglatency);
-        
-        
-	    /*
-	     * Previous Video Length
-	     */
-//        console.log("Previous_videoLength: "+T_AllAdsLength);
-
-        
-        
-        /*
-         * Report Abandonment in case that video session closes before reporting data
-         * 0 : Video ended
-         * 1 : Previously Stopped by BufferStalling
-         * 2 : Previously Stopped by Clients
-         */
-        if(T_bufferflag=="UP"){
-    		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByBufferStalling!");
-    		previouslyAbandonedDuetoBuffering=1;
-    		reportWithPreviousData();
-    		
-    	}else if(T_bufferflag=="DOWN" || T_bufferflag==null){
-    		console.log("YouSlow: Previously--NOT--stoppedbyAdandonmentDuetoBufferStalling!");
-    		previouslyAbandonedDuetoBuffering=0;
-    		
-    	}else if(T_bufferflag=="DOWN(PLAYING)"){
-    		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByClients!");
-    		previouslyAbandonedDuetoBuffering=2;
-    		reportWithPreviousData();
-    		
-    	}
-        document.removeEventListener('fetchResponse', respListener);
-        
-    });
 }
 
 function reportWithPreviousData(){
@@ -1166,11 +1239,6 @@ function reportWithPreviousData(){
 	}
 		
 	
-// We disable this for the case where viewers close during ads
-//	if(parseInt(T_timelength)<1)
-//		isGood = false;
-//	if(parseInt(T_bufferduration)>parseInt(T_timelength))
-//		isGood = false;
 	
 	if(isGood){
 	    var URLparameters = "localtime="+T_localtime	
@@ -1199,12 +1267,10 @@ function reportWithPreviousData(){
 	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
-//	    console.log("YouSlow: T_avglatency - "+T_avglatency);
 	    
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", videoInfoURL, true);
 		xhr.onreadystatechange = function() {
-		  //console.log("HTTP STATE: "+xhr.readyState);
 		  if (xhr.readyState == 4) {
 		    console.log("YouSlow: buffering events reported...");
 		    previouslyAbandonedDuetoBuffering = 0;
@@ -1287,7 +1353,9 @@ function report(){
     timeReport = year+"-"+month+"-"+date+" "+hours+":"+minutes+":"+seconds;
     
     
-    //Update available quality for the just closed video
+    /*
+     * Update available quality for the just closed video
+     */
 	available_video_quality = '';
 	var quality_list = player.getAvailableQualityLevels();
 	for (var prop in quality_list) {
@@ -1297,7 +1365,9 @@ function report(){
 	}
 	
 	
-    //Always when completely being watched video
+	/*
+	 * Always when completely being watched video
+	 */
     previouslyAbandonedDuetoBuffering=0;
     
 	if(city != null){    
@@ -1320,10 +1390,6 @@ function report(){
 
 	if(!isGood)
 		console.log("YouSlow: Decline report request!");
-
-	
-//	if(bufferingDuration>elapsedTime)
-//		isGood = false;
 
 	
 	if(isGood){
@@ -1352,7 +1418,6 @@ function report(){
 	    
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
-//	    console.log("YouSlow: T_avglatency - "+T_avglatency);
 	    
 		var xhr = new XMLHttpRequest();
 		xhr.open("GET", videoInfoURL, true);
@@ -1373,21 +1438,6 @@ function report(){
 
 
 
-
-
-
-
-
-function rot13(s)
-{
-   return (s ? s : this).split('').map(function(_)
-    {
-       if (!_.match(/[A-za-z]/)) return _;
-       c = Math.floor(_.charCodeAt(0) / 97);
-       k = (_.toLowerCase().charCodeAt(0) - 83) % 26 || 26;
-       return String.fromCharCode(k + ((c == 0) ? 64 : 96));
-    }).join('');
-}
 
 
 

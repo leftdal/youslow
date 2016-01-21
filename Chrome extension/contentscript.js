@@ -28,13 +28,21 @@ var isVideoAds;
 
  
 function sendDataToExtension() {
-//    var dataObj = {"avglatency":avglatency, "ispreVideoAds":ispreVideoAds, "prevideolength":prevideolength.toString()};
-    var dataObj = String(avglatency)+"&"+String(isVideoAds);
+	
+	/*
+	 * Update avg_lagtency and video Ads flag measure in background page
+	 */
+	var dataObj = String(avglatency)+"&"+String(isVideoAds);
     var storeEvent = new CustomEvent('getFromContentScript', {"detail":dataObj});
     document.dispatchEvent(storeEvent);
 }
 
 
+
+/*
+ * BufferingStatus called every 5seconds from extension
+ * It saves data locally and obtains information from background page
+ */
 document.addEventListener('BufferingStatus', function(e) {
 	
 	if(e.detail.bufferflag=="InitialCheck"){
@@ -58,9 +66,6 @@ document.addEventListener('BufferingStatus', function(e) {
     	 */
 		e.detail.avglatency = avglatency;
 		
-		
-		
-
 		chrome.storage.local.set({
 			"detail": e.detail
 		}, function(items) {
@@ -85,30 +90,36 @@ document.addEventListener('BufferingStatus', function(e) {
 function SendMessageToBackgroundPage(data)
 {
 
-	/*
-	 * However, we cannot use IP to geolocation database since all IPs are marked on Mountain view, CA
-	 * We can measure HTTP response time using chrome.webRequest.onHeadersReceived.addListener(function callback)
-	 */
 	
 	/*
-	 * Sending a request from a content script:
+	 * Sending a request from a content script to background page:
 	 */
 	chrome.runtime.sendMessage({greeting: "getvideoURL"}, function(response2) {
-//		  console.log("URL: "+response2.getvideoURL+", Avg_latency: "+response2.getavglatency+" ms");
+
 		  currentURL=response2.getvideoURL;
 		  avglatency=response2.getavglatency;
 		  detectedURL=response2.detectedURL;
 		  isVideoAds=response2.isVideoAds;
+		  var traffic_total_bytes=response2.traffic_total_bytes
+		  var seconds = new Date().getTime() / 1000;
+		  var traffic_monitoring=response2.traffic_monitoring;
+		  var traffic_monitoring_split=traffic_monitoring.split("&");
+		  var traffic_monitoring_length=traffic_monitoring_split.length-1;
+		  var avg_traffic_over_last_5s=traffic_total_bytes/1024;
+		  avg_traffic_over_last_5s=Math.round(avg_traffic_over_last_5s/5);
 		  
-//		  console.log("Video URL: "+currentURL);
-//		  console.log("detected URL: "+detectedURL);
-//		  console.log("isVideoAds: "+isVideoAds);
-//		  console.log("prevideolength: "+prevideolength);
-//		  console.log("urlChangeCounter: "+urlChangeCounter);
+		  
+		  /*
+		   * For experimental testbed,
+		   * Printout number of chunks and avg download rate every 5seconds
+		   */
+//		  console.log(seconds+") num of chunks: "+traffic_monitoring_length+", avg_traffic_over_last_5s: "+avg_traffic_over_last_5s+"KB/s, download rate in by chunk KB/s: "+traffic_monitoring);
+
 	});
+
 	
 	/*
-	 * Update data messages to extension
+	 * Update data messages back to extension
 	 */
 	 sendDataToExtension();
 
