@@ -16,3 +16,19 @@ Clients watch videos in http/https://www.youtube.com
 			+ Communication to contentscript.js
 			+ Measure video playback events
 			+ Report data to YouSlow monitoring server over HTTPS
+			
+			
+
+Abandonment case
+================
+
+Close during rebuffering
+	+ when abandonment starts "1:some numbers"
+
+Close during initial rebuffering
+	+ During video Ads, video fraction is always ZERO
+	+ Therefore, abandonment is "1:0"
+
+Close during pre-roll ads
+	+ close where adslength=0?
+	

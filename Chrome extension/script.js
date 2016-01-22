@@ -187,7 +187,92 @@ function onYouTubePlayerReady(playerId) {
 	 * automatically increases elapsedTime by 1
 	 */
 	setInterval(function(){
-		elapsedTime = elapsedTime+1;
+		
+		var currentState=player.getPlayerState();
+
+		/*
+		 * update current video loaded fraction
+		 * During video Ads, video fraction is always ZERO
+		 * During video Ads, player status is 3
+		 */
+		fraction = player.getVideoLoadedFraction();
+
+		
+		/*
+		 * Every second, we check buffering flag
+		 * In case that, when refreshing browser, the state listener may NOT catch the pre-roll Ads
+		 * To prevent this, we check it every second
+		 */
+		if(currentState==3){
+			if(!isBuffering){
+				
+				startBufferingTime = Math.ceil(new Date().getTime() / 1000);
+				isBuffering = true;
+				
+				/*
+				 * BufferStalling status update
+				 */
+				bufferingStatusUpdateValue = "UP";
+				bufferdurationwithtime_start_elapsedTime=elapsedTime.toString();
+				bufferdurationwithtime = bufferdurationwithtime+bufferdurationwithtime_start_elapsedTime+'?';
+				bufferingStatusUpdate();
+				
+				/*
+				 * Pre-roll Ads contained initial buffering time
+				 * So, initial buffering time include pre-roll ads and rebuffering at the beginning
+				 */
+				if(elapsedTime==0){
+					isInitialBuffering = true;
+					initialBufferingStartTime = new Date();
+
+					/*
+					 * In case that this is due to pre-roll ads
+					 * We also turn on the ads flag for pre-roll ads
+					 */
+					AdsStartTime = new Date().getTime() / 1000;
+				}
+				
+			}
+		}
+		
+		
+		/*
+		 * We do not increase elapsed time when current state is PAUSED
+		 */
+		if(currentState!=2){
+			elapsedTime = elapsedTime+1;
+		}
+
+		
+		if(currentState==1){
+			
+			/*
+			 * We are currently playing the main video
+			 */
+			isPlayingMainVideo=true;
+			if(isPlayingAds){
+
+				/*
+				 * Ads length update
+				 */
+				AdsEndTime = new Date().getTime() / 1000;
+	    		var tmp_videoAdsLength=AdsEndTime-AdsStartTime;
+	    		var tmp_rounded_videoAdsLength=Math.round(tmp_videoAdsLength);
+	    		AllAdsLength = AllAdsLength+tmp_rounded_videoAdsLength.toString()+":";
+				isPlayingAds=false;
+				
+			}
+		}
+		
+		/*
+		console.log("YouSlow status: "+currentState);
+		console.log("YouSlow elapsed time: "+elapsedTime);
+		console.log("YouSlow fraction: "+fraction);
+		console.log("YouSlow isBuffering: "+isBuffering);
+		console.log("YouSlow isPlayingAds: "+isPlayingAds);
+		 */
+		
+
 	},1000);
 	
 	
@@ -202,11 +287,6 @@ function onYouTubePlayerReady(playerId) {
 	 */
 	setInterval(function(){
 		
-		/*
-		 * update current video loaded fraction
-		 */
-		fraction = player.getVideoLoadedFraction();
-
 		var initialState = player.getPlayerState();
         if(initialState==1){ // Video playing
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
@@ -215,6 +295,9 @@ function onYouTubePlayerReady(playerId) {
 			bufferingStatusUpdateValue = "NOT STARTED";
 			bufferingStatusUpdate();
 		}else if(initialState==0){ // Video ended
+			/*
+			 * Do not update buffering status since it automatically reports when video ends
+			 */
 			bufferingStatusUpdateValue = "DOWN(END)";
 		}else if(initialState==3){ // Video rebuffering
 			bufferingStatusUpdateValue = "UP";
@@ -634,18 +717,20 @@ function state() {
 	
 	if(currentState==3){
 		
+		/*
+		 * Since version 1.2.2
+		 * We check buffering or Ads case every second
 		if(!isBuffering){
 			
 			startBufferingTime = Math.ceil(new Date().getTime() / 1000);
 			isBuffering = true;
-			
-			/*
-			 * BufferStalling status update
-			 */
 			bufferingStatusUpdateValue = "UP";
+			bufferdurationwithtime = bufferdurationwithtime+bufferdurationwithtime_start_elapsedTime+'?';
 			bufferdurationwithtime_start_elapsedTime=elapsedTime.toString();
 			bufferingStatusUpdate();
+
 		}
+		*/
 		
 	}else if(currentState==0){
 		
@@ -698,7 +783,7 @@ function state() {
 				if(timeDiff>0){
 					numofrebufferings = numofrebufferings+1;
 					bufferingDuration = bufferingDuration+timeDiff;
-					bufferdurationwithtime = bufferdurationwithtime+bufferdurationwithtime_start_elapsedTime+'?'+timeDiff.toString()+':';
+					bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
 					bufferdurationwithtime_start_elapsedTime='';
 //					console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
 //					console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
@@ -728,7 +813,7 @@ function state() {
 				if(timeDiff>0){
 					numofrebufferings = numofrebufferings+1;
 					bufferingDuration = bufferingDuration+timeDiff;
-					bufferdurationwithtime = bufferdurationwithtime+bufferdurationwithtime_start_elapsedTime+'?'+timeDiff.toString()+':';
+					bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
 					bufferdurationwithtime_start_elapsedTime='';
 	//				console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
 	//				console.log("YouSlow: accumulated buffering- "+bufferingDuration+" seconds.");
@@ -1156,65 +1241,31 @@ function bufferingStatusUpdate(){
 	    var tmp_isvideoAds=tmp_split[1];
 
 	    avglatency=tmp_avglatency;
-
+	    
+	    /*
+	     * We only enable video ads flag
+	     * when we found certain Ads url parameter in GET urls
+	     */
 	    if(tmp_isvideoAds=="true"){
+
 	    	if(!isPlayingAds){
+	    		
 	    		AdsStartTime = new Date().getTime() / 1000;
 	    		var CurrentStartTime=elapsedTime.toString();
-	    		
-	    		/*
-	    		 * There is the case where isInitialBuffering ON, but elapsedTime > 0
-	    		 * We found when the user contrinously watch the videos after the main video ends
-	    		 * We compare between elapsedinitialBufferingTime and AllAdsLength
-	    		 * The elapsedTime until the video is requested to actullay start playing the video is
-	    		 * MAX(elapsedinitialBufferingTime, AllAdsLength=0?X).
-	    		 */
-	    		if(isInitialBuffering){
-	    			CurrentStartTime="0";
-	    		}
-	    		var tmp_elapsedinitialBufferingTime=parseFloat(elapsedinitialBufferingTime)/1000;
-	    		if(tmp_elapsedinitialBufferingTime>parseFloat(CurrentStartTime)){
-	    			CurrentStartTime="0";
-	    		}
-	    			
 	    		AllAdsLength = AllAdsLength+CurrentStartTime+"?";
-	    		
 	    		
 	    		/*
 	    		 * Start from beginning
 	    		 */
-	    		if(CurrentStartTime=="0"){
+	    		if(isInitialBuffering){
+	    			var CurrentStartTime="0";
 	    			AllAdsLength = CurrentStartTime+"?";
 	    		}
-//	    		console.log("UPDATE-AdsStartTime: "+AdsStartTime);
-//	    		console.log("UPDATE-AllAdsStart: "+CurrentStartTime);
-//	    		console.log("UPDATE-initialBufferingState: "+isInitialBuffering);
 	    		
 	    	}
 	    	isPlayingAds=true;
 	    	isPlayingMainVideo=false;
-	    }else{
-	    	if(!isPlayingMainVideo && isPlayingAds){
-	    		AdsEndTime = new Date().getTime() / 1000;
-	    		var tmp_videoAdsLength=AdsEndTime-AdsStartTime;
-	    		tmp_videoAdsLength=tmp_videoAdsLength+5; // We add additional 5sec of Ads since we skipped the first 5sec.
-	    		tmp_rounded_videoAdsLength=Math.round(tmp_videoAdsLength);
-	    		AllAdsLength = AllAdsLength+tmp_rounded_videoAdsLength.toString()+":"; // save video ads length (Ads start time?duration:)
-	    		isPlayingAds=false;
-//	    		console.log("UPDATE-AdsEndTime: "+AdsEndTime);
-//	    		console.log("UPDATE-tmp_videoAdsLength: "+tmp_videoAdsLength);
-//	    		console.log("UPDATE-AllAdsLength: "+AllAdsLength);
-	    	}
-    		isPlayingMainVideo=true;
 	    }
-	    
-//	    console.log("UPDATE-resultsFromContentScript: "+resultsFromContentScript);
-//		console.log("UPDATE-tmp_isvideoAds: "+tmp_isvideoAds);
-//		console.log("UPDATE-isPlayingAds: "+isPlayingAds);
-//		console.log("UPDATE-isPlayingMainVideo: "+isPlayingMainVideo);
-//		console.log("UPDATE-AllAdsLength: "+AllAdsLength);
-
-	    
 	});
 	
 	
