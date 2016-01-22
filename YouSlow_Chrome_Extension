@@ -26,9 +26,10 @@ Close during rebuffering
 	+ when abandonment starts "1:some numbers"
 
 Close during initial rebuffering
-	+ During video Ads, video fraction is always ZERO
-	+ Therefore, abandonment is "1:0"
+	+ abandonment is "1:0"
+	+ adslength=
 
 Close during pre-roll ads
+	+ During video Ads, video fraction is always ZERO
 	+ close where adslength=0?
 	
