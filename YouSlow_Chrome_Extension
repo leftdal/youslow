@@ -21,15 +21,41 @@ Clients watch videos in http/https://www.youtube.com
 
 Abandonment case
 ================
-
 Close during rebuffering
 	+ when abandonment starts "1:some numbers"
 
 Close during initial rebuffering
 	+ abandonment is "1:0"
-	+ adslength=
+	+ adslength ""
 
 Close during pre-roll ads
 	+ During video Ads, video fraction is always ZERO
-	+ close where adslength=0?
+	+ close where adslength is "0?"
+	+ abandonment is "1:0"
 	
+
+Measure initial buffering length
+================================
+	1] adslength=0?5
+	2] bufferdurationwithtime=0?8
+	3] initialbufferingtime=7999
+	+ if pre-roll Ads, MAX(1,2,3)
+	+ otherwise, MAX(2,3) 
+	
+
+
+Error cases
+===========
++delete when bufferduation is larger than timelength
+DELETE FROM `basics` WHERE CAST(`bufferduration` AS UNSIGNED) > CAST(`timelength` AS UNSIGNED) and version != ''
+
++delete when abandonment is '0:0'
+DELETE FROM `basics` WHERE abandonment = '0:0' and version != '' 
+
++delete when video closed by client during playback but timelength is  '0'
+DELETE FROM `basics` WHERE abandonment = '2:0' and timelength ='0' and version != '' 
+
+
+
+	
+		

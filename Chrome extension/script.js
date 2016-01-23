@@ -66,15 +66,15 @@ var fraction=0;
 var stop_video_url_change_report=false;
 var PlaybackQualityChange_before='';
 var bufferdurationwithtime_start_elapsedTime='';
-var elapsedinitialBufferingTime_first=0;
-var elapsedinitialBufferingTime_second=0;
-var elapsedinitialBufferingTime_stop_report=false;
 
 var previouslyAbandonedDuetoBuffering_one_second_ago=0;
 var fraction_one_second_ago=0;
 var avglatency_one_second_ago=0;
+var bufferdurationwithtime_one_second_ago='';
+var elapsedinitialBufferingTime_one_second_ago=0;
 
-var version='Chrome 1.2.3';
+
+var version='Chrome 1.2.5';
 
 
 
@@ -111,13 +111,8 @@ function onYouTubePlayerReady(playerId) {
 	 * This is caused when a client stopped watching a video due to the buffer stalling previously
 	 * The information is locally save on client's device.
 	 * When a client watches the video again or new video, it checks if it needs to report the abandonment to monitoring server.
-	 * Wait for just 1 second until it gets IP and basic ISP information
 	 */
-	setTimeout(function(){
-		report_previously_closed_events();
-		bufferingStatusUpdateValue = "InitialCheck";
-		bufferingStatusUpdate();
-	},1000)
+	report_previously_closed_events();
 	
 	
 	
@@ -135,13 +130,6 @@ function onYouTubePlayerReady(playerId) {
 	player.addEventListener("onStateChange", "state");
 	player.addEventListener("onPlaybackQualityChange", "PlaybackQualityChange");
 	
-
-	
-	/*
-	 * Since version 1.2.1 we omit playback rate change
-	 * player.addEventListener("onPlaybackRateChange", "PlaybackRateChange");
-	 */
-
 
 	
 	
@@ -172,22 +160,6 @@ function onYouTubePlayerReady(playerId) {
 	}
 
 	
-
-	
-	/*
-	 * Since version 1.2.1
-	 * no longer use to add elapsed time every 5seconds
-	 if(startTime != null){
-			endTime = new Date();
-			var timeDiff = endTime - startTime;
-			var timeDiff = timeDiff/1000;
-			var seconds = Math.round(timeDiff);
-			elapsedTime = elapsedTime + seconds;
-			startTime = null;
-	 }
-	 */
-
-
 	
 	
 
@@ -196,21 +168,25 @@ function onYouTubePlayerReady(playerId) {
 	 */
 	setInterval(function(){
 		
-		var currentState=player.getPlayerState();
-		
+		/*
+		 * For safety check
+		 * We save temp parameter that are used to report data
+		 * It prevents from being reported with newly replaced data
+		 */
+		previouslyAbandonedDuetoBuffering_one_second_ago=previouslyAbandonedDuetoBuffering;
+		fraction_one_second_ago=fraction;
+		avglatency_one_second_ago=avglatency;
+		bufferdurationwithtime_one_second_ago=bufferdurationwithtime;
+		elapsedinitialBufferingTime_one_second_ago=elapsedinitialBufferingTime;
+
 		
 		/*
-		 * To prevent from being reported after current measurements replaced by the new data
-		 * Save one-time interval ago data (3seconds before)
-		 * It is only used for the video url change case
+		 * Monitor video url changes every second, since version 1.2.0
 		 */
-		if(elapsedTime%3==0){
-			previouslyAbandonedDuetoBuffering_one_second_ago=previouslyAbandonedDuetoBuffering;
-			fraction_one_second_ago=fraction;
-			avglatency_one_second_ago=avglatency;
-		}
+		checkVideoURLchange();
+
 		
-		
+		var currentState=player.getPlayerState();
 		
 		
 		/*
@@ -253,7 +229,7 @@ function onYouTubePlayerReady(playerId) {
 				 * Pre-roll Ads contained initial buffering time
 				 * So, initial buffering time include pre-roll ads and rebuffering at the beginning
 				 */
-				if(elapsedTime==0){
+				if(elapsedTime<=1){
 					isInitialBuffering = true;
 					initialBufferingStartTime = new Date();
 
@@ -285,6 +261,41 @@ function onYouTubePlayerReady(playerId) {
 			previouslyAbandonedDuetoBuffering=2;
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
 			
+			
+			/*
+			 * We chack initial buffering status every second
+			 */
+			if(isInitialBuffering){
+				isInitialBuffering = false;
+				initialBufferingEndTime = new Date();
+				var timeDiff = initialBufferingEndTime - initialBufferingStartTime;
+				elapsedinitialBufferingTime = timeDiff;
+				console.log("YouSlow: elapsedinitialBufferingTime: "+elapsedinitialBufferingTime);				
+			}
+			
+			
+			/*
+			 * We chack buffering status every second
+			 */
+			if(isBuffering){
+				isBuffering = false;
+				var endBufferingTime = Math.ceil(new Date().getTime() / 1000);
+				var timeDiff = endBufferingTime - startBufferingTime;
+
+				/*
+				 * Sometimes buffering length == 0
+				 * We round up
+				 */
+				if(timeDiff==0)
+					timeDiff=1;
+				
+				numofrebufferings = numofrebufferings+1;
+				bufferingDuration = bufferingDuration+timeDiff;
+				bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
+				bufferdurationwithtime_start_elapsedTime='';
+			}
+			
+			
 			/*
 			 * We are currently playing the main video
 			 */
@@ -315,6 +326,9 @@ function onYouTubePlayerReady(playerId) {
 		console.log("YouSlow previouslyAbandonedDuetoBuffering: "+previouslyAbandonedDuetoBuffering);
 		console.log("YouSlow AllAdsLength: "+AllAdsLength);
 		console.log("YouSlow avglatency: "+avglatency);
+		console.log("YouSlow elapsedinitialBufferingTime: "+elapsedinitialBufferingTime);
+		console.log("YouSlow bufferdurationwithtime: "+bufferdurationwithtime);
+		console.log("YouSlow bufferdurationwithtime_one_second_ago: "+bufferdurationwithtime_one_second_ago);
 		*/
 		
 
@@ -356,12 +370,6 @@ function onYouTubePlayerReady(playerId) {
 	
 	
 
-	/*
-	 * Monitor video url changes since version 1.2.0
-	 */
-	setInterval(function(){
-		checkVideoURLchange();
-	},1000);
     
 
 
@@ -716,34 +724,11 @@ function PlaybackQualityChange() {
 
 
 
-/*
- * Since version 1.2.1
- * We do not monitor playbackratechange
- *
-/*
-function PlaybackRateChange() { 
-	var currentState = player.getPlaybackRate();
-	requestedResolutions = requestedResolutions+currentState+":";
-	requestedresolutionswithtime = requestedresolutionswithtime+elapsedTime.toString()+"?"+currentState+":";
-	console.log("YouSlow: PlaybackRateChange- "+currentState);
-	NumOfResolutionChanges = NumOfResolutionChanges+1;
-	
-}
-*/
-
-
-
-
-
-
-
-
-
-
-
 
 
 /*
+ * Event listener for player status change
+ * 
  * YouTube player status
  * -1 (unstarted)
  * 0 (ended)
@@ -753,9 +738,6 @@ function PlaybackRateChange() {
  * 5 (video cued)
  */
 
-/*
- * Event listener for player status change
- */
 function state() { 
 	
 	var currentState = player.getPlayerState();
@@ -770,17 +752,7 @@ function state() {
 		/*
 		 * Since version 1.2.2
 		 * We check buffering or Ads case every second
-		if(!isBuffering){
-			
-			startBufferingTime = Math.ceil(new Date().getTime() / 1000);
-			isBuffering = true;
-			bufferingStatusUpdateValue = "UP";
-			bufferdurationwithtime = bufferdurationwithtime+bufferdurationwithtime_start_elapsedTime+'?';
-			bufferdurationwithtime_start_elapsedTime=elapsedTime.toString();
-			bufferingStatusUpdate();
-
-		}
-		*/
+		 */
 		
 	}else if(currentState==0){
 		
@@ -808,44 +780,12 @@ function state() {
         		isMainVideoStarted=true;
         	}
 			
-			if(isInitialBuffering){
-				isInitialBuffering = false;
-				initialBufferingEndTime = new Date();
-				var timeDiff = initialBufferingEndTime - initialBufferingStartTime;
-				elapsedinitialBufferingTime = timeDiff;
-				console.log("YouSlow: elapsedinitialBufferingTime: "+elapsedinitialBufferingTime);
-				
-				if(elapsedinitialBufferingTime_first==0){
-					elapsedinitialBufferingTime_first=elapsedinitialBufferingTime;
-				}else if(elapsedinitialBufferingTime_second==0){
-					elapsedinitialBufferingTime_second=elapsedinitialBufferingTime;
-				}
-			}
-			
-			if(isBuffering){
-				isBuffering = false;
-				var endBufferingTime = Math.ceil(new Date().getTime() / 1000);
-				var timeDiff = endBufferingTime - startBufferingTime;
-
-				/*
-				 * Sometimes buffering length == 0
-				 * We round up
-				 */
-				if(timeDiff==0)
-					timeDiff=1;
-				
-				numofrebufferings = numofrebufferings+1;
-				bufferingDuration = bufferingDuration+timeDiff;
-				bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
-				bufferdurationwithtime_start_elapsedTime='';
-			}
-			
+						
 			/*
 			 * BufferStalling status update
 			 */
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
 			bufferingStatusUpdate();
-			isInitialBuffering = false;
 			
 		}
 		
@@ -970,7 +910,12 @@ function call_data_for_video_url_change_event(){
 	if( country==null || country.length < 1 || country=='none' || country==''){
 		isGood = false;
 	}
-		
+	
+	/*
+	 * Total timelength should also count bufferingDuration
+	 */
+	if(bufferingDuration>elapsedTime)
+		isGood = false;
 	
 	
 	/*
@@ -998,35 +943,6 @@ function call_data_for_video_url_change_event(){
 	}
 
 	
-	/*
-	 * We consider two initial elpased-time
-	 * This prevents from being reported after newly measured initial buffering time replaces the old value
-	 * But, need to first report the old value
-	 */
-	var tmp_elapsedinitialBufferingTime=0;
-	if(elapsedinitialBufferingTime_first!=0 && elapsedinitialBufferingTime_second==0){
-		if(!elapsedinitialBufferingTime_stop_report){
-			tmp_elapsedinitialBufferingTime=0;
-			elapsedinitialBufferingTime_stop_report=true;
-		}else{
-			tmp_elapsedinitialBufferingTime=elapsedinitialBufferingTime_first;
-			elapsedinitialBufferingTime_first=elapsedinitialBufferingTime_second;
-			elapsedinitialBufferingTime_second=0;
-		}
-	}else if(elapsedinitialBufferingTime_first!=0){
-		tmp_elapsedinitialBufferingTime=elapsedinitialBufferingTime_first;
-		elapsedinitialBufferingTime_first=elapsedinitialBufferingTime_second;
-		elapsedinitialBufferingTime_second=0;
-	}
-
-	
-
-	
-	/*
-	 * Before the main video ends, video url changes by client's request or rebuffering
-	 */
-
-	
 	
 	
     /*
@@ -1039,6 +955,21 @@ function call_data_for_video_url_change_event(){
 			  available_video_quality = available_video_quality+quality_list[prop]+":";
 		  }
 	}
+	
+	
+	/*
+	 * For safety check
+	 * if last char of bufferdurationwithtime is '?'
+	 * We consider this abandonment
+	 */
+	var lastChar = bufferdurationwithtime_one_second_ago.substr(bufferdurationwithtime_one_second_ago.length-1);
+	if(lastChar=='?')
+		previouslyAbandonedDuetoBuffering_one_second_ago=1;
+	else
+		previouslyAbandonedDuetoBuffering_one_second_ago=2;
+
+	
+
 	
 	if(isGood){
 	    var URLparameters = "localtime="+timeReport	
@@ -1055,7 +986,7 @@ function call_data_for_video_url_change_event(){
 							+"&requestedresolutions="+requestedResolutions
 							+"&requestedresolutionswithtime="+requestedresolutionswithtime
 							+"&timelength="+elapsedTime.toString()
-							+"&initialbufferingtime="+tmp_elapsedinitialBufferingTime.toString()
+							+"&initialbufferingtime="+elapsedinitialBufferingTime_one_second_ago.toString()
 							+"&abandonment="+previouslyAbandonedDuetoBuffering_one_second_ago.toString()+":"+fraction_one_second_ago.toString()
 	    					+"&avglatency="+avglatency_one_second_ago //Need to check
 	    					+"&allquality="+available_video_quality
@@ -1162,6 +1093,10 @@ function report_previously_closed_events(){
 	/*
 	 * Only call when refresh the webpage
 	 */
+	bufferingStatusUpdateValue = "InitialCheck";
+	bufferingStatusUpdate();
+	
+	
 	document.addEventListener('fetchResponse', function respListener(event) {
 		
 		T_localtime = event.detail.localtime;	
@@ -1185,7 +1120,20 @@ function report_previously_closed_events(){
         T_available_video_quality = event.detail.allquality;
         T_fraction = event.detail.fraction;
         T_AllAdsLength=event.detail.AllAdsLength;
+        
+        
+    	/*
+    	 * For safety check
+    	 * if last char of bufferdurationwithtime is '?'
+    	 * We consider this abandonment
+    	 */
+    	var lastChar = T_bufferdurationwithtime.substr(T_bufferdurationwithtime.length - 1);
+    	if(lastChar=='?')
+    		T_bufferflag="UP";
 
+    	
+    	
+    	
         /*
          * Report Abandonment in case that video session closes before reporting data
          * 0 : Video ended
@@ -1194,16 +1142,16 @@ function report_previously_closed_events(){
          */
         if(T_bufferflag=="UP"){
     		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByBufferStalling!");
-    		previouslyAbandonedDuetoBuffering=1;
+    		T_abandonment=1;
     		reportWithPreviousData();
     		
     	}else if(T_bufferflag=="DOWN" || T_bufferflag==null){
     		console.log("YouSlow: Previously--NOT--stoppedbyAdandonmentDuetoBufferStalling!");
-    		previouslyAbandonedDuetoBuffering=0;
+    		T_abandonment=0;
     		
     	}else if(T_bufferflag=="DOWN(PLAYING)"){
     		console.log("YouSlow: PreviouslyStoppedbyAdandonmentByClients!");
-    		previouslyAbandonedDuetoBuffering=2;
+    		T_abandonment=2;
     		reportWithPreviousData();
     	}
         document.removeEventListener('fetchResponse', respListener);
@@ -1347,6 +1295,9 @@ function bufferingStatusUpdate(){
 	}));
 	
 	
+
+	
+	
 	
 	/*
 	 * event listener for getFromContentScript
@@ -1372,19 +1323,21 @@ function bufferingStatusUpdate(){
 	    		
 	    		AdsStartTime = new Date().getTime() / 1000;
 	    		var CurrentStartTime=elapsedTime.toString();
-	    		AllAdsLength = AllAdsLength+CurrentStartTime+"?";
-	    		
-	    		/*
-	    		 * Start from beginning
-	    		 */
-	    		if(isInitialBuffering){
+
+    			/*
+    			 * We only catch pre-roll ads
+    			 * later we catch mid-roll ads
+    			 */
+	    		if(isInitialBuffering || CurrentStartTime<=1){
 	    			var CurrentStartTime="0";
 	    			AllAdsLength = CurrentStartTime+"?";
+	    	    	isPlayingAds=true;
+	    	    	isPlayingMainVideo=false;
+	    		}else{
+		    		//AllAdsLength = AllAdsLength+CurrentStartTime+"?";
 	    		}
 	    		
 	    	}
-	    	isPlayingAds=true;
-	    	isPlayingMainVideo=false;
 	    }
 	});
 	
@@ -1406,10 +1359,34 @@ function reportWithPreviousData(){
 	
 	if( T_country==null || T_country.length < 1 || T_country=='none' || T_country==''){
 		isGood = false;
-		console.log("YouSlow: Decline report request!");
 	}
 		
+	/*
+	 * Totaltimelength should also count bufferingDuration
+	 */
+	if(T_bufferduration>T_timelength)
+		isGood = false;
 	
+	/*
+	 * We set it false for abandonment is 2:0 
+	 */
+	var safety_check=T_abandonment.toString()+":"+T_fraction.toString();
+	if(safety_check=='2:0' && T_timelength=='0'){
+		isGood=false;
+		console.log("safety_check: "+safety_check);
+	}
+	
+	/*
+	 * Playback length > 0 but fraction is 0
+	 */
+	if(T_fraction=='0' && parseInt(T_timelength) > 0){
+		isGood=false;
+		console.log("safety_check: T_fraction "+T_fraction+", but T_timelength "+T_timelength);
+	}
+	
+	if(!isGood)
+		console.log("YouSlow: Decline report request!");
+
 	
 	if(isGood){
 	    var URLparameters = "localtime="+T_localtime	
@@ -1553,13 +1530,17 @@ function report(){
 	
 	var isGood = true;
 	
-	if( country==null || country.length < 1)
-		isGood = false;
-
 	if( country==null || country.length < 1 || country=='none' || country==''){
 		isGood = false;
 	}
 
+	/*
+	 * Totaltimelength should also count bufferingDuration
+	 */
+	if(bufferingDuration>elapsedTime)
+		isGood = false;
+
+	
 	if(!isGood)
 		console.log("YouSlow: Decline report request!");
 
