@@ -109,6 +109,11 @@ function SendMessageToBackgroundPage(data)
 		  avg_traffic_over_last_5s=Math.round(avg_traffic_over_last_5s/5);
 		  
 		  
+//		  console.log("detectedURL: "+detectedURL);
+//		  var segment_interval=response2.segment_interval;
+//		  console.log("segment_interval: "+segment_interval);
+		  
+		  
 		  /*
 		   * For experimental testbed,
 		   * Printout number of chunks and avg download rate every 5seconds

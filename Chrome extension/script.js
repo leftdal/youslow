@@ -74,7 +74,7 @@ var bufferdurationwithtime_one_second_ago='';
 var elapsedinitialBufferingTime_one_second_ago=0;
 
 
-var version='Chrome 1.2.5';
+var version='Chrome 1.2.6';
 
 
 
@@ -791,29 +791,6 @@ function state() {
 		
 		if(currentState==2){
 			
-			if(isBuffering){
-				isBuffering = false;
-				var endBufferingTime = Math.ceil(new Date().getTime() / 1000);
-				var timeDiff = endBufferingTime - startBufferingTime;
-
-				/*
-				 * Sometimes buffering length == 0
-				 * We round up
-				 */
-				if(timeDiff==0)
-					timeDiff=1;
-				
-				/*
-				 * During video paused
-				 * We update rebuffering lenth
-				 * video pause does not count for rebuffering
-				 */
-				numofrebufferings = numofrebufferings+1;
-				bufferingDuration = bufferingDuration+timeDiff;
-				bufferdurationwithtime = bufferdurationwithtime+timeDiff.toString()+':';
-				bufferdurationwithtime_start_elapsedTime='';
-			}
-			
 			/*
 			 * BufferStalling status update
 			 */
@@ -969,7 +946,12 @@ function call_data_for_video_url_change_event(){
 		previouslyAbandonedDuetoBuffering_one_second_ago=2;
 
 	
-
+	/*
+	 * It is NOT possible timelength is zero
+	 */
+	if(elapsedTime==0)
+		isGood=false;
+	
 	
 	if(isGood){
 	    var URLparameters = "localtime="+timeReport	
@@ -1373,7 +1355,7 @@ function reportWithPreviousData(){
 	var safety_check=T_abandonment.toString()+":"+T_fraction.toString();
 	if(safety_check=='2:0' && T_timelength=='0'){
 		isGood=false;
-		console.log("safety_check: "+safety_check);
+//		console.log("safety_check: "+safety_check);
 	}
 	
 	/*
@@ -1381,8 +1363,15 @@ function reportWithPreviousData(){
 	 */
 	if(T_fraction=='0' && parseInt(T_timelength) > 0){
 		isGood=false;
-		console.log("safety_check: T_fraction "+T_fraction+", but T_timelength "+T_timelength);
+//		console.log("safety_check: T_fraction "+T_fraction+", but T_timelength "+T_timelength);
 	}
+	
+	/*
+	 * It is NOT possible timelength is zero
+	 */
+	if(parseInt(T_timelength)==0)
+		isGood=false;
+	
 	
 	if(!isGood)
 		console.log("YouSlow: Decline report request!");
@@ -1539,7 +1528,13 @@ function report(){
 	 */
 	if(bufferingDuration>elapsedTime)
 		isGood = false;
-
+	
+	/*
+	 * It is NOT possible timelength is zero
+	 */
+	if(elapsedTime==0)
+		isGood=false;
+	
 	
 	if(!isGood)
 		console.log("YouSlow: Decline report request!");

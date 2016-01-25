@@ -17,6 +17,11 @@ var send_request_video_playback={url1: 100, url2: 200};
 
 
 
+var experimental_time=0;
+var experimental_gap='';
+
+
+
 /*
  * Background page
  * 	: Exchange messages to contentscripts (contentscript.js)
@@ -83,6 +88,20 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 		    	}else{
 		    		isVideoAds=false;
 		    	}
+		    	
+		    	
+		    	
+		    	/*
+		    	 * For experimental test to measure segment interval
+		    	 * YouTube shows about 10seconds.
+		    	 */
+//		    	var seconds = new Date().getTime() / 1000;
+//		    	var tmp_gap=Math.round(seconds-experimental_time);
+//		    	experimental_gap=experimental_gap+tmp_gap.toString()+"&";
+//		    	experimental_time=seconds;
+		    	
+		    	
+		    	
 		    	
 	    		fullURL = details.url;
 	    		previous_requestId = details.requestId;
@@ -191,7 +210,7 @@ chrome.webRequest.onCompleted.addListener(
 chrome.runtime.onMessage.addListener(function(message2,sender2,sendResponse2){
 	
 	
-	  sendResponse2({getvideoURL: videoURL, getavglatency: avg_latency, detectedURL: detectedURL, isVideoAds: isVideoAds, traffic_total_bytes: traffic_total_bytes, traffic_monitoring: traffic_monitoring});
+	  sendResponse2({getvideoURL: videoURL, getavglatency: avg_latency, detectedURL: detectedURL, isVideoAds: isVideoAds, traffic_total_bytes: traffic_total_bytes, traffic_monitoring: traffic_monitoring, segment_interval: experimental_gap});
 	  
 	  /*
 	   * reset every 5seconds
