@@ -44,6 +44,13 @@ Measure initial buffering length
 	
 
 
+Version 1.2.7 
+====================
+	+ Count number of video chunks
+	+ Count total video bytes
+	+ Duration of video
+
+
 
 
 Error cases
