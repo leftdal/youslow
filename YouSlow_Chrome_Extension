@@ -44,6 +44,8 @@ Measure initial buffering length
 	
 
 
+
+
 Error cases
 ===========
 +delete when bufferduation is larger than timelength

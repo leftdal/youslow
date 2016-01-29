@@ -31,6 +31,10 @@ var isPlayingMainVideo=false;
 var AdsStartTime=0;
 var AdsEndTime=0;
 var resultsFromContentScript="";
+var num_of_video_chunks=0;
+var total_video_bytes=0;
+var videoduration=0;
+
 
 var T_AllAdsLength="";
 var T_localtime=null;
@@ -55,6 +59,10 @@ var T_fraction=0;
 var T_available_video_quality='';
 var T_previouslyAbandonedDuetoBuffering = 0;
 
+var T_num_of_video_chunks=0;
+var T_total_video_bytes=0;
+var T_videoduration=0;
+
 
 var video_url=null;
 var current_video_url=null;
@@ -72,9 +80,11 @@ var fraction_one_second_ago=0;
 var avglatency_one_second_ago=0;
 var bufferdurationwithtime_one_second_ago='';
 var elapsedinitialBufferingTime_one_second_ago=0;
+var num_of_video_chunks_one_second_ago=0;
+var total_video_bytes_one_second_ago=0;
+var videoduration_one_second_ago=0;
 
-
-var version='Chrome 1.2.6';
+var version='Chrome 1.2.7';
 
 
 
@@ -178,7 +188,12 @@ function onYouTubePlayerReady(playerId) {
 		avglatency_one_second_ago=avglatency;
 		bufferdurationwithtime_one_second_ago=bufferdurationwithtime;
 		elapsedinitialBufferingTime_one_second_ago=elapsedinitialBufferingTime;
-
+		
+		num_of_video_chunks_one_second_ago=num_of_video_chunks;
+		total_video_bytes_one_second_ago=total_video_bytes;
+		videoduration_one_second_ago=videoduration;
+		
+		
 		
 		/*
 		 * Monitor video url changes every second, since version 1.2.0
@@ -829,6 +844,9 @@ function initialData(){
 	isPlayingMainVideo=false;
 	AllAdsLength="";
 	isMainVideoStarted=false;
+	num_of_video_chunks=0;
+	total_video_bytes=0;
+	videoduration=0;
 }
 
 
@@ -856,6 +874,9 @@ function initialData_T(){
 	T_available_video_quality='';
 	T_fraction=0;
 	T_AllAdsLength="";
+	T_num_of_video_chunks=0;
+	T_total_video_bytes=0;
+	T_videoduration=0;
 	
 }
 
@@ -951,8 +972,11 @@ function call_data_for_video_url_change_event(){
 	 */
 	if(elapsedTime==0)
 		isGood=false;
+
 	
-	
+	if(parseInt(num_of_video_chunks_one_second_ago)==0 || parseInt(total_video_bytes_one_second_ago)==0 || parseInt(videoduration_one_second_ago)==0)
+		isGood=false;
+
 	if(isGood){
 	    var URLparameters = "localtime="+timeReport	
 							+"&hostname="+hostname
@@ -973,9 +997,12 @@ function call_data_for_video_url_change_event(){
 	    					+"&avglatency="+avglatency_one_second_ago //Need to check
 	    					+"&allquality="+available_video_quality
 	    					+"&version="+version
-	    					+"&adslength="+AllAdsLength;
+	    					+"&adslength="+AllAdsLength
+	    					+"&videochunks="+num_of_video_chunks_one_second_ago
+	    					+"&videobytes="+total_video_bytes_one_second_ago
+	    					+"&videoduration="+videoduration_one_second_ago;
 		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured11.php?"+(URLparameters);
 	    
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
@@ -992,74 +1019,6 @@ function call_data_for_video_url_change_event(){
 		xhr.send();
 		
 	}
-	
-	
-	
-	
-	
-	
-	
-	
-	
-	
-//	
-	/*
-	 * Report measurements for previouly closed video based on the locally saved measurements
-	 */
-//	if(isGood){
-//	    var URLparameters = "localtime="+timeReport	
-//							+"&hostname="+window.localStorage.getItem("hostname")
-//							+"&city="+window.localStorage.getItem("city")
-//							+"&region="+window.localStorage.getItem("region")
-//							+"&country="+window.localStorage.getItem("country")
-//							+"&loc="+window.localStorage.getItem("loc")
-//							+"&org="+window.localStorage.getItem("org")
-//							+"&numofrebufferings="+window.localStorage.getItem("numofrebufferings")
-//							+"&bufferduration="+window.localStorage.getItem("bufferduration")
-//							+"&bufferdurationwithtime="+window.localStorage.getItem("bufferdurationwithtime")
-//							+"&resolutionchanges="+window.localStorage.getItem("resolutionchanges")
-//							+"&requestedresolutions="+window.localStorage.getItem("requestedresolutions")
-//							+"&requestedresolutionswithtime="+window.localStorage.getItem("requestedresolutionswithtime")
-//							+"&timelength="+window.localStorage.getItem("timelength")
-//							+"&initialbufferingtime="+tmp_elapsedinitialBufferingTime.toString()
-//							+"&abandonment="+window.localStorage.getItem("abandonment")+":"+window.localStorage.getItem("fraction")
-//							+"&avglatency="+T_avglatency //Should get T_avglatency
-//							+"&allquality="+window.localStorage.getItem("allquality")
-//	    					+"&version="+version
-//	    					+"&adslength="+T_AllAdsLength;
-//	    
-//	    
-//	    		
-//	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
-//	    
-//	    console.log("YouSlow: reported URLparameters - "+URLparameters);
-//	    					
-//		var xhr = new XMLHttpRequest();
-//		xhr.open("GET", videoInfoURL, true);
-//		xhr.onreadystatechange = function() {
-//		  if (xhr.readyState == 4) {
-//		    console.log("YouSlow: buffering events reported for video URL changes...");
-//		    previouslyAbandonedDuetoBuffering=0;
-//		    
-//		    initialData();
-//		    
-//		    /*
-//		     * update all bitrates for the current video
-//		     */
-//			available_video_quality = '';
-//			var quality_list = player.getAvailableQualityLevels();
-//			for (var prop in quality_list) {
-//				  if (quality_list.hasOwnProperty(prop)) {
-//					  available_video_quality = available_video_quality+quality_list[prop]+":";
-//				  }
-//			}
-//			
-//		    
-//		  }
-//		}
-//		xhr.send();
-//		
-//	}
 	
 	
 	
@@ -1102,6 +1061,9 @@ function report_previously_closed_events(){
         T_available_video_quality = event.detail.allquality;
         T_fraction = event.detail.fraction;
         T_AllAdsLength=event.detail.AllAdsLength;
+        T_num_of_video_chunks=event.detail.videoChunks;
+        T_total_video_bytes=event.detail.videoBytes;
+        T_videoduration=event.detail.videoDuration;
         
         
     	/*
@@ -1207,9 +1169,6 @@ function bufferingStatusUpdate(){
 	    window.localStorage.removeItem("bufferflag");      // <-- Local storage!
 	    window.localStorage.setItem("bufferflag", bufferingStatusUpdateValue);  // <-- Local storage!
 	    
-	    window.localStorage.removeItem("avglatency");      // <-- Local storage!
-	    window.localStorage.setItem("avglatency", avglatency);  // <-- Local storage!
-
 	    window.localStorage.removeItem("requestedresolutionswithtime");      // <-- Local storage!
 	    window.localStorage.setItem("requestedresolutionswithtime", requestedresolutionswithtime);  // <-- Local storage!
 
@@ -1224,8 +1183,11 @@ function bufferingStatusUpdate(){
 	    
 	    window.localStorage.removeItem("AllAdsLength");      // <-- Local storage!
 	    window.localStorage.setItem("AllAdsLength", AllAdsLength);  // <-- Local storage!
+
+
 	    
-	    	    
+
+	    
 	    
 		available_video_quality = '';
 		var quality_list = player.getAvailableQualityLevels();
@@ -1264,10 +1226,11 @@ function bufferingStatusUpdate(){
     		"allquality": available_video_quality,
     		"fraction": fraction.toString(),
     		"AllAdsLength": AllAdsLength
-    		
 
+
+    		
     		/*
-    		 * avglatency updated in contentscript.js page
+    		 * avglatency, video_chunks, video_bytes, videoduration updated in contentscript.js page
     		 */
     		
     };
@@ -1293,7 +1256,16 @@ function bufferingStatusUpdate(){
 	    var tmp_avglatency=tmp_split[0];
 	    var tmp_isvideoAds=tmp_split[1];
 
+	    /*
+	     * Update avglatency num_of_video_chunks total_video_bytes fron content script
+	     */
 	    avglatency=tmp_avglatency;
+	    num_of_video_chunks=tmp_split[2];
+	    total_video_bytes=tmp_split[3];
+	    videoduration=tmp_split[4];
+	    
+//	    console.log("YouSlow- avglatency: "+avglatency+", num_of_video_chunks: "+num_of_video_chunks+", total_video_bytes: "+total_video_bytes);
+	    
 	    
 	    /*
 	     * We only enable video ads flag
@@ -1372,9 +1344,16 @@ function reportWithPreviousData(){
 	if(parseInt(T_timelength)==0)
 		isGood=false;
 	
+
+	if(parseInt(T_num_of_video_chunks)==0 || parseInt(T_total_video_bytes)==0 || parseInt(T_videoduration)==0)
+		isGood=false;	
 	
 	if(!isGood)
 		console.log("YouSlow: Decline report request!");
+
+    
+//	console.log("YouSlow- T_avglatency: "+T_avglatency+", T_num_of_video_chunks: "+T_num_of_video_chunks+", T_total_video_bytes: "+T_total_video_bytes);
+
 
 	
 	if(isGood){
@@ -1397,11 +1376,14 @@ function reportWithPreviousData(){
 							+"&avglatency="+T_avglatency //Should get T_avglatency
 							+"&allquality="+T_available_video_quality
 	    					+"&version="+version
-	    					+"&adslength="+T_AllAdsLength;
+	    					+"&adslength="+T_AllAdsLength
+							+"&videochunks="+T_num_of_video_chunks
+							+"&videobytes="+T_total_video_bytes
+	    					+"&videoduration="+T_videoduration;
 	    
 	    
 
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured11.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
 	    
@@ -1535,9 +1517,13 @@ function report(){
 	if(elapsedTime==0)
 		isGood=false;
 	
+	if(parseInt(num_of_video_chunks)==0 || parseInt(total_video_bytes)==0 || parseInt(videoduration)==0)
+		isGood=false;
+
 	
 	if(!isGood)
 		console.log("YouSlow: Decline report request!");
+	
 
 	
 	if(isGood){
@@ -1560,9 +1546,12 @@ function report(){
 	    					+"&avglatency="+avglatency //Need to check
 	    					+"&allquality="+available_video_quality
 	    					+"&version="+version
-	    					+"&adslength="+AllAdsLength;
+	    					+"&adslength="+AllAdsLength
+							+"&videochunks="+num_of_video_chunks
+							+"&videobytes="+total_video_bytes
+	    					+"&videoduration="+videoduration;
 		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured10.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured11.php?"+(URLparameters);
 	    
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);

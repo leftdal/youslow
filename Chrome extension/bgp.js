@@ -19,7 +19,8 @@ var send_request_video_playback={url1: 100, url2: 200};
 
 var experimental_time=0;
 var experimental_gap='';
-
+var videoURL_all='';
+var isReset=false;
 
 
 /*
@@ -28,37 +29,6 @@ var experimental_gap='';
  *  : Use Chrome WebRequest APIs to monitor video URLs and measure HTTP latency
  */
 
-
-/*
- * since version 1.2.1,
- * we use OnComplete listener
-
-chrome.webRequest.onHeadersReceived.addListener(
-	    function(details) {
-	    	if(findvideoURL){
-	    		if (fullURL.indexOf("videoplayback?") > -1 ) {
-	    			after_requestId = details.requestId;
-	    			if(previous_requestId == after_requestId){
-//	    				console.log( "Response requestId: "+details.requestId);
-//		    			console.log( "Response timeStamp: "+details.timeStamp);
-	    				after_time = parseInt(details.timeStamp);
-	    				var gap = after_time - previous_time;
-//		    			console.log( "Response timeStamp gap: "+gap);
-		    			sum_all_time = sum_all_time + gap;
-		    			count_events = count_events +1;
-		    			var avg = sum_all_time/count_events;
-		    			avg_latency = Math.round(avg);
-//		    			console.log( "Response gap on average: "+Math.round(avg));
-		    			previous_requestId = -1;
-	    			}
-	    		}
-	    	}
-	    },
-	    {urls: ["<all_urls>"]},
-	    ["blocking", "responseHeaders"]
-);
-
-*/
 
 
 chrome.webRequest.onBeforeSendHeaders.addListener(
@@ -129,9 +99,12 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
 	    			console.log("New URL dectected: "+videoURL);
 
 	    			/*
-	    			 * reset avg_latency when video url changes
+	    			 * reset parameters
 	    			 */
 	    			avg_latency=0;
+	    			traffic_monitoring='';
+	    			traffic_total_bytes=0;
+	    			
 	    		}
 	    	} 
 	    	
@@ -178,7 +151,13 @@ chrome.webRequest.onCompleted.addListener(
     			var traffic=(total_byte)/time_gap;
     			traffic = Math.round(traffic/1024);
     			
-
+    			
+    			/*
+    			 * Save video url
+    			 */
+//    			videoURL_all+=inspect_url+"Totalbytes-"+total_byte;
+    			videoURL_all=inspect_url+"Totalbytes-"+total_byte;
+    			
     			/*
     			 * Accumulated traffic monitoring
     			 */
@@ -188,6 +167,7 @@ chrome.webRequest.onCompleted.addListener(
     			/*
     			 * To calculate avg. traffic over last 5seconds in contentscript.js
     			 */
+    			total_byte = Math.round(total_byte/1024);
     			traffic_total_bytes=traffic_total_bytes+total_byte;
 
     			/*
@@ -208,15 +188,21 @@ chrome.webRequest.onCompleted.addListener(
  * Receive and send messages to content script
  */
 chrome.runtime.onMessage.addListener(function(message2,sender2,sendResponse2){
-	
-	
-	  sendResponse2({getvideoURL: videoURL, getavglatency: avg_latency, detectedURL: detectedURL, isVideoAds: isVideoAds, traffic_total_bytes: traffic_total_bytes, traffic_monitoring: traffic_monitoring, segment_interval: experimental_gap});
+
+	isReset=message2.resetParameters;
+	if(isReset){
+		avg_latency=0;
+		traffic_monitoring='';
+		traffic_total_bytes=0;
+	}
+
+	sendResponse2({getvideoURL: videoURL, getavglatency: avg_latency, detectedURL: detectedURL, isVideoAds: isVideoAds, traffic_total_bytes: traffic_total_bytes, traffic_monitoring: traffic_monitoring, resetParameters: message2.resetParameters, videoURL_all: videoURL_all});
 	  
 	  /*
 	   * reset every 5seconds
 	   */
-	  traffic_monitoring='';
-	  traffic_total_bytes=0;
+//	  traffic_monitoring='';
+//	  traffic_total_bytes=0;
 });
 
 

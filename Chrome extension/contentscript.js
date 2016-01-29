@@ -25,6 +25,12 @@ var urlChangeCounter=0;
 var avglatency;
 var detectedURL;
 var isVideoAds;
+var resetParameters=false;
+
+var num_of_video_chunks=0;
+var num_of_video_bytes=0;
+
+var videoDuration=0;
 
  
 function sendDataToExtension() {
@@ -32,7 +38,7 @@ function sendDataToExtension() {
 	/*
 	 * Update avg_lagtency and video Ads flag measure in background page
 	 */
-	var dataObj = String(avglatency)+"&"+String(isVideoAds);
+	var dataObj = String(avglatency)+"&"+String(isVideoAds)+"&"+String(num_of_video_chunks)+"&"+String(num_of_video_bytes)+"&"+String(videoDuration);
     var storeEvent = new CustomEvent('getFromContentScript', {"detail":dataObj});
     document.dispatchEvent(storeEvent);
 }
@@ -53,9 +59,19 @@ document.addEventListener('BufferingStatus', function(e) {
 		});
 		    document.dispatchEvent(fetchResponse);
 		});
+		resetParameters=true;
+		
+		/*
+		 * Video duration reset
+		 * other parameters (avglatency,videoChunks,videoBytes) reset in bgp.js
+		 */
+		videoDuration=0;
+		
+		SendMessageToBackgroundPage("Reset parameters in background page");
 		
 	}else{
 		
+		resetParameters=false;
 		/*
 		 * Try to exchange messages to background script
 		 */
@@ -65,6 +81,10 @@ document.addEventListener('BufferingStatus', function(e) {
     	 * Average latency update
     	 */
 		e.detail.avglatency = avglatency;
+		e.detail.videoChunks = num_of_video_chunks;
+		e.detail.videoBytes = num_of_video_bytes;
+		e.detail.videoDuration = videoDuration;
+		
 		
 		chrome.storage.local.set({
 			"detail": e.detail
@@ -94,7 +114,9 @@ function SendMessageToBackgroundPage(data)
 	/*
 	 * Sending a request from a content script to background page:
 	 */
-	chrome.runtime.sendMessage({greeting: "getvideoURL"}, function(response2) {
+//	chrome.runtime.sendMessage({greeting: "getvideoURL"}, function(response2) 
+
+	chrome.runtime.sendMessage({resetParameters: resetParameters}, function(response2) {
 
 		  currentURL=response2.getvideoURL;
 		  avglatency=response2.getavglatency;
@@ -108,18 +130,38 @@ function SendMessageToBackgroundPage(data)
 		  var avg_traffic_over_last_5s=traffic_total_bytes/1024;
 		  avg_traffic_over_last_5s=Math.round(avg_traffic_over_last_5s/5);
 		  
+		  var videoURL_all=response2.videoURL_all;
+		  
 		  
 //		  console.log("detectedURL: "+detectedURL);
-//		  var segment_interval=response2.segment_interval;
-//		  console.log("segment_interval: "+segment_interval);
+		  var resetParameters=response2.resetParameters;
+		  if(resetParameters)
+			  console.log("YouSlow: initialized background information");
 		  
+
+		  /*
+		   * Video chunks and bytes update
+		   */
+		  num_of_video_chunks=traffic_monitoring_length;
+		  num_of_video_bytes=traffic_total_bytes;
+
+		  var temp_videoURL_all=videoURL_all.split("dur=");
+		  var temp_d=temp_videoURL_all[1].split("&");
+		  videoDuration=Math.round(parseInt(temp_d[0]));
+
+			
 		  
 		  /*
 		   * For experimental testbed,
 		   * Printout number of chunks and avg download rate every 5seconds
 		   */
 //		  console.log(seconds+") num of chunks: "+traffic_monitoring_length+", avg_traffic_over_last_5s: "+avg_traffic_over_last_5s+"KB/s, download rate in by chunk KB/s: "+traffic_monitoring);
-
+//		  console.log("currentURL: "+currentURL);
+//		  console.log(seconds+") num of chunks: "+num_of_video_chunks+", traffic_total_bytes: "+traffic_total_bytes+" kbytes");
+//		  console.log(videoURL_all);
+//		  console.log("Total video duration:"+videoDuration+" s");
+//		  console.log("===========");
+		  
 	});
 
 	
