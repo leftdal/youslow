@@ -51,6 +51,15 @@ Version 1.2.7
 	+ Duration of video
 
 
+Monitoring Embeded iFrame YouTube player in Twitter?
+====================================================
+	+ need to load https://www.youtube.com/iframe_api
+	+ but it violates twitter content script policy
+	+ need to enable enablejsapi=1
+	+ need to specify player-id
+	+ e.g.,)<iframe width="430" height="241" src="http://www.youtube.com/embed/XjUz8IT0CYg?enablejsapi=1&theme=light&showinfo=0" frameborder="0" allowfullscreen id="player-1"></iframe></li>
+	
+
 
 
 Error cases

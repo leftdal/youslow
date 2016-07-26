@@ -165,7 +165,7 @@ chrome.webRequest.onCompleted.addListener(
 
     			
     			/*
-    			 * To calculate avg. traffic over last 5seconds in contentscript.js
+    			 * traffic_total_bytes update in kB/s
     			 */
     			total_byte = Math.round(total_byte/1024);
     			traffic_total_bytes=traffic_total_bytes+total_byte;

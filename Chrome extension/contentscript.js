@@ -52,22 +52,44 @@ function sendDataToExtension() {
 document.addEventListener('BufferingStatus', function(e) {
 	
 	if(e.detail.bufferflag=="InitialCheck"){
-		
+
+
 		chrome.storage.local.get('detail', function (retVal) {
 			var fetchResponse = new CustomEvent('fetchResponse', {
 				"detail": retVal.detail
 		});
 		    document.dispatchEvent(fetchResponse);
 		});
-		resetParameters=true;
 		
+		resetParameters=true;
 		/*
 		 * Video duration reset
 		 * other parameters (avglatency,videoChunks,videoBytes) reset in bgp.js
 		 */
 		videoDuration=0;
-		
 		SendMessageToBackgroundPage("Reset parameters in background page");
+		
+		
+
+		e.detail.avglatency = avglatency;
+		e.detail.videoChunks = num_of_video_chunks;
+		e.detail.videoBytes = num_of_video_bytes;
+		e.detail.videoDuration = videoDuration;
+		
+		chrome.storage.local.set({
+			"detail": e.detail
+		}, function(items) {
+			try {
+		        if (chrome.runtime.lastError) {
+		            console.warn(chrome.runtime.lastError.message);
+		        } else {
+//		        	console.log("YouSlow bufferStalling staus updated All: "+e.detail.localtime+"&"+e.detail.hostname+"&"+e.detail.city+"&"+e.detail.region+"&"+e.detail.country+"&"+e.detail.loc+"&"+e.detail.org+"&"+e.detail.bufferduration+"&"+e.detail.resolutionchanges+"&"+e.detail.requestedresolutions+"&"+e.detail.timelength+"&"+e.detail.initialbufferingtime+"&"+e.detail.abandonment+"&"+e.detail.bufferflag+"&"+e.detail.avglatency+"&"+e.detail.allquality+"&"+e.detail.fraction);
+		        }
+		    } catch (exception) {
+		        console.warn((new Date()).toJSON(), "exception.stack:", exception.stack);
+		    }
+		});
+		
 		
 	}else{
 		
@@ -135,9 +157,9 @@ function SendMessageToBackgroundPage(data)
 		  
 //		  console.log("detectedURL: "+detectedURL);
 		  var resetParameters=response2.resetParameters;
-		  if(resetParameters)
+		  if(resetParameters){
 			  console.log("YouSlow: initialized background information");
-		  
+		  }
 
 		  /*
 		   * Video chunks and bytes update
@@ -158,8 +180,12 @@ function SendMessageToBackgroundPage(data)
 //		  console.log(seconds+") num of chunks: "+traffic_monitoring_length+", avg_traffic_over_last_5s: "+avg_traffic_over_last_5s+"KB/s, download rate in by chunk KB/s: "+traffic_monitoring);
 //		  console.log("currentURL: "+currentURL);
 //		  console.log(seconds+") num of chunks: "+num_of_video_chunks+", traffic_total_bytes: "+traffic_total_bytes+" kbytes");
+
 //		  console.log(videoURL_all);
-//		  console.log("Total video duration:"+videoDuration+" s");
+//		  console.log("isVideoAds: "+isVideoAds);
+//		  console.log("num_of_video_chunks: "+num_of_video_chunks);
+//		  console.log("traffic_total_bytes: "+traffic_total_bytes+" kbytes");
+//		  console.log("Total video duration: "+videoDuration+" s");
 //		  console.log("===========");
 		  
 	});

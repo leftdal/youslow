@@ -1,6 +1,6 @@
 {
     "name": "YouTube Too Slow!?",
-    "version": "1.2.7",
+    "version": "1.2.8",
   	"manifest_version": 2,
   	"description": "Share Your YouTube Buffer Freeze with The World!",
   	"icons": {
@@ -14,7 +14,7 @@
     	"persistent": true
   	},
     "content_scripts": [{
-      "matches": ["http://www.youtube.com/*","https://www.youtube.com/*"],
+      "matches": ["http://www.youtube.com/*","https://www.youtube.com/*","https://twitter.com/*","http://twitter.com/*","https://t.co/*"],
       "js": ["contentscript.js"],
       "run_at": "document_end"
   	}],
