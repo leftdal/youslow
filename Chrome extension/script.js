@@ -89,7 +89,7 @@ var num_of_video_chunks_two_second_ago=0;
 var total_video_bytes_two_second_ago=0;
 var videoduration_two_second_ago=0;
 
-var version='Chrome 1.2.8';
+var version='Chrome 1.2.9';
 
 
 var prev_getCurrentTime=0;
@@ -232,6 +232,7 @@ function onYouTubePlayerReady(playerId) {
 		 */
 		if(currentState!=2 && currentState!=5){
 			fraction = player.getVideoLoadedFraction();
+//			console.log("YouSlow: fraction - "+fraction);
 		}
 		
 		/*
@@ -368,7 +369,9 @@ function onYouTubePlayerReady(playerId) {
 
 	},1000);
 	
-
+	/*
+	 * For safty check to prevent from being reported with a new data
+	 */
 	setInterval(function(){
 		num_of_video_chunks_two_second_ago=num_of_video_chunks_one_second_ago;
 		total_video_bytes_two_second_ago=total_video_bytes_one_second_ago;
@@ -378,17 +381,15 @@ function onYouTubePlayerReady(playerId) {
 	
 	/*
 	 * We monitor number of skip while a video is being played
-	 * Skip means the case where a viewer moves a slide bar in the player
+	 * Skip means the case where a viewer moves a slidebar of the player
 	 */
 	setInterval(function(){
 		current=player.getCurrentTime();
-		
-		
 		if(prev_getCurrentTime==0){
 			prev_getCurrentTime=current;
 		}else if(current!=0){
 			gap=current-prev_getCurrentTime;
-			if(gap>2 || gap<0){
+			if(gap>2 || gap<0){ // for case forwards or backwards
 				isVideoSkippedByUsers=true;
 				num_of_skips=num_of_skips+1;
 				console.log("YouSlow: Video skipped by users - "+num_of_skips);
@@ -405,12 +406,6 @@ function onYouTubePlayerReady(playerId) {
 	 * The old measurement will be reported when the client watches video again
 	 */
 	setInterval(function(){
-		
-//		console.log(elapsedTime);
-//		console.log(num_of_video_chunks_one_second_ago);
-//		console.log(total_video_bytes_one_second_ago);
-//		console.log(videoduration_one_second_ago);
-		
 		var initialState = player.getPlayerState();
         if(initialState==1){ // Video playing
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
@@ -441,6 +436,9 @@ function onYouTubePlayerReady(playerId) {
 }
 
 
+/*
+ * Detect if a viewer uses an adBlock
+ */
 function detectAdsBlock(){
 	var test = document.createElement('div');
 	test.innerHTML = '&nbsp;';
@@ -459,9 +457,13 @@ function detectAdsBlock(){
 }
 
 
+/*
+ * It monitors if a new video is loaded
+ */
 function checkVideoURLchange() {
 	current_video_url = player.getVideoUrl();
 	var tmp_video_url = current_video_url.split("v=");
+	
 	// If it contains video URL
 	if(current_video_url.indexOf('v=') > -1 && video_url!=null){
 		if(video_url != tmp_video_url[1]){
@@ -472,16 +474,12 @@ function checkVideoURLchange() {
 				if(!stop_video_url_change_report){
 					console.log("YouSlow: video url changed!!");
 
-					
 					/*
 		        	 * Call locally saved event data and report for the video URL change events
 		        	 */
 					safe_previouslyAbandonedDuetoBuffering=previouslyAbandonedDuetoBuffering;
 		        	call_data_for_video_url_change_event();
 		        	
-		        	
-		        	
-				
 				}
 				stop_video_url_change_report=false;
 			}
@@ -508,6 +506,9 @@ function getIP() {
 }
 
 
+/*
+ * Use ip-api.com
+ */
 function getUserInfoV2(){
 	var userInfoURL = "https://dyswis.cs.columbia.edu/youslow/getinfoV2.php?"+IP.trim();
 	console.log("YouSlow: We use ip-api.com to find an approximate location");
@@ -541,6 +542,12 @@ function getUserInfoV2(){
 	xhr_v2.send();
 }
 
+
+
+
+/*
+ * Anternatively use ipinfo.io
+ */
 function getUserInfo(){
 	
 	/*
@@ -568,8 +575,6 @@ function getUserInfo(){
 //	     console.log("YouSlow 6: "+obj.loc);
 //	     console.log("YouSlow 7: "+obj.org);
 	    
-
-	    
 	    hostname = obj.hostname;
 	    city = obj.city;
 	    region = obj.region;
@@ -596,11 +601,6 @@ function getUserInfo(){
 	    	org = org.trim();
 	    }
 		
-		
-
-	    
-	    
-
 	  }
 	}
 	xhr.send();
@@ -857,6 +857,9 @@ function PlaybackQualityChange() {
  * 5 (video cued)
  */
 
+/*
+ * state() function deprecated
+ */
 function state() { 
 	
 	var currentState = player.getPlayerState();
@@ -1323,19 +1326,13 @@ function bufferingStatusUpdate(){
 	    window.localStorage.setItem("AllAdsLength", AllAdsLength);  // <-- Local storage!
 
 
-	    
-//var dataObj = String(avglatency)+"&"+String(isVideoAds)+"&"+String(num_of_video_chunks)+"&"+String(num_of_video_bytes)+"&"+String(videoDuration);
-
-	    
-	    
-		available_video_quality = '';
+	    available_video_quality = '';
 		var quality_list = player.getAvailableQualityLevels();
 		for (var prop in quality_list) {
 			  if (quality_list.hasOwnProperty(prop)) {
 				  available_video_quality = available_video_quality+quality_list[prop]+":";
 			  }
 		}
-		
 	    window.localStorage.removeItem("allquality");      // <-- Local storage!
 	    window.localStorage.setItem("allquality", available_video_quality);  // <-- Local storage!
 	    
@@ -1396,8 +1393,6 @@ function bufferingStatusUpdate(){
     		"AllAdsLength": AllAdsLength
 
 
-
-    		
     		/*
     		 * avglatency, video_chunks, video_bytes, videoduration updated in contentscript.js page
     		 */
