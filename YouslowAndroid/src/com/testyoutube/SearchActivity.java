@@ -1,9 +1,29 @@
 package com.testyoutube;
 
+import java.util.List; 
+
 import com.squareup.picasso.Picasso;
 
+import android.app.Activity; 
+import android.content.Intent;
+import android.content.res.Configuration;
+import android.os.Bundle;
+import android.os.Handler;
 import android.support.v7.app.ActionBarDrawerToggle; 
-import android.support.v4.widget.DrawerLayout; 
+import android.support.v4.widget.DrawerLayout;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.KeyEvent;
+import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.TextView; 
 
 public class SearchActivity extends Activity {
  
@@ -19,6 +39,7 @@ public class SearchActivity extends Activity {
     private CharSequence mDrawerTitle;
     private CharSequence mTitle;
     private String[] mPlanetTitles;
+    private String defaultVideo="grumpy cat";
      
     @Override
     protected void onCreate(Bundle savedInstanceState) {    
@@ -32,8 +53,13 @@ public class SearchActivity extends Activity {
         searchInput.setOnEditorActionListener(new TextView.OnEditorActionListener() {           
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {           
-                if(actionId == EditorInfo.IME_ACTION_DONE){
-                    searchOnYoutube(v.getText().toString());
+                if(actionId == EditorInfo.IME_ACTION_SEARCH || actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_GO || actionId == EditorInfo.IME_ACTION_NEXT){
+                    
+                	String str=v.getText().toString();
+                	str=str.trim();
+                	if(str.length()>0){
+                    	searchOnYoutube(v.getText().toString());
+                	}
                     return false;
                 }
                 return true;
@@ -42,6 +68,13 @@ public class SearchActivity extends Activity {
         
         addClickListener();
         
+        
+        /**
+         * Add margin between left drawer icon and main icon
+         */
+        ImageView view = (ImageView)findViewById(android.R.id.home); 
+        view.setPadding(5, 0, 0, 0);
+
         // Setting drawer
         mTitle = mDrawerTitle = getTitle();
         mPlanetTitles = getResources().getStringArray(R.array.statistic_array);
@@ -69,7 +102,7 @@ public class SearchActivity extends Activity {
         mDrawerLayout.setDrawerListener(mDrawerToggle);
         
         // Default search for grumpy cat
-        searchOnYoutube("grumpy cat");
+        searchOnYoutube(defaultVideo);
     }
     
     @Override
@@ -98,13 +131,16 @@ public class SearchActivity extends Activity {
         @Override
         public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
             if(position == 0){
-            	// Switching to line chart
+            	Intent intent = new LineChartLast10().execute(getApplicationContext());
+            	startActivity(intent);	           
+            }else if(position == 1){
             	Intent intent = new LineChart().execute(getApplicationContext());
             	startActivity(intent);	
-            }
-            else{
-            	// Switching to pie chart
+            }else if(position == 2){
             	Intent intent = new Intent(getApplicationContext(), PiechartActivity.class);
+            	startActivity(intent);             
+            }else if(position == 3){  
+            	Intent intent = new Intent(getApplicationContext(), YouSlowActivity.class);
             	startActivity(intent);             
             }
         }

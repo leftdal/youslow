@@ -1,5 +1,10 @@
 package com.testyoutube;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import android.content.Context;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -13,14 +18,12 @@ public class YoutubeConnector {
     private YouTube youtube; 
      
     // Developer key
-    public static final String KEY 
-        = "AIzaSyBx8NE1C1VFreZgI4CP4tf2EeTx6TbHtDM";
+    public static final String KEY = "AIzaSyBx8NE1C1VFreZgI4CP4tf2EeTx6TbHtDM";
      
     public YoutubeConnector(Context context) { 
         youtube = new YouTube.Builder(new NetHttpTransport(), 
                 new JacksonFactory(), new HttpRequestInitializer() {            
             @Override
-			@Override
             public void initialize(HttpRequest hr) throws IOException {}
         }).setApplicationName(context.getString(R.string.app_name)).build();
          

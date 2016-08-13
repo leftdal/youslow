@@ -1452,7 +1452,8 @@ function bufferingStatusUpdate(){
 	    	    	isPlayingAds=true;
 	    	    	isPlayingMainVideo=false;
 	    		}else{
-		    		//AllAdsLength = AllAdsLength+CurrentStartTime+"?";
+	    			
+//		    		AllAdsLength = AllAdsLength+CurrentStartTime+"?";
 	    		}
 	    		
 	    	}

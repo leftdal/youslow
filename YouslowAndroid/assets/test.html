@@ -1,6 +1,18 @@
 <!DOCTYPE>
 <html>
-
+  <style>
+	  html {
+	   margin: 0px;
+	   height: 100%;
+	   width: 100%;
+	}
+	
+	body {
+	   margin: 0px;
+	   min-height: 100%;
+	   width: 100%;
+	}
+  </style>
   <body>
    
     <!-- The <iframe> (and video player) will replace this <div> tag. -->
@@ -22,6 +34,9 @@
       var player;      
       var iniTime;
       var inibuf = true;
+      var getCurrent;
+      var getDuration;
+      
       function onYouTubeIframeAPIReady() {
         player = new YT.Player('player', {
           height: videoheight,
@@ -36,15 +51,43 @@
       }
 
       function onPlayerReady(event) {
-    	 iniTime = new Date();
+    	 /* iniTime = new Date(); */
+    	 
+    	 window.setInterval(function(){
+    		  /// call your function here
+    		  updateStatus();
+    		}, 1000);
+      }
+      
+      function updateStatus(){
+    	 var status=player.getPlayerState();
+    	 if(status!=5){
+    		if(iniTime==null){
+    			iniTime = new Date();
+    		}
+        	var myTime = new Date(); 
+         	var timeDur =  Math.round((myTime.getTime()-iniTime.getTime())/1000); 
+         	var fracPlay = player.getVideoLoadedFraction();
+         	AndroidFunction.showToast(fracPlay, "loadedfrac");
+         	AndroidFunction.showToast(timeDur, "timelength");
+         	getCurrent = player.getCurrentTime();
+			AndroidFunction.showToast(getCurrent, "getCurrentTime");
+			getDuration = player.getDuration();
+			AndroidFunction.showToast(getDuration, "getDuration");
+			var currentQuality=player.getPlaybackQuality();
+			AndroidFunction.showToast(currentQuality, "currentQuality");
+    	 }
+     	 AndroidFunction.showToast(status.toString(), "status");
+     	 
+		     	 
+     	/* player.getPlayerState() */
       }
  
       // Sending playing state changing information 
       function onPlayerStateChange(event) { 
     	 var myTime = new Date(); 
     	 var timeDur =  Math.round((myTime.getTime()-iniTime.getTime())/1000); 
-    	 AndroidFunction.showToastState(event.data, timeDur);
-    	 
+    	 AndroidFunction.showToastState(event.data, timeDur); // check buffering
     	 var fracPlay = player.getVideoLoadedFraction();
     	 AndroidFunction.showToast(fracPlay, "loadedfrac");
     	 AndroidFunction.showToast(timeDur, "timelength");

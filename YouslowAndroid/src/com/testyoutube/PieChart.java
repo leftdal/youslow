@@ -1,10 +1,15 @@
 package com.testyoutube;
 
+import java.text.NumberFormat;
+
 import org.achartengine.ChartFactory;
 import org.achartengine.GraphicalView;
 import org.achartengine.model.CategorySeries;
 import org.achartengine.renderer.DefaultRenderer;
 import org.achartengine.renderer.SimpleSeriesRenderer;
+
+import android.content.Context;
+import android.graphics.Color;
  
 public class PieChart {  
      

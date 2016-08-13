@@ -4,14 +4,17 @@
     android:versionCode="1"
     android:versionName="1.0" >
     
+    <uses-sdk
+        android:minSdkVersion="21"
+        android:targetSdkVersion="23" />
+    
     <!-- add web and location permission-->
 	<uses-permission android:name="android.permission.INTERNET"/>
 	<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-sdk
-        android:minSdkVersion="15"
-        android:targetSdkVersion="15" />
+	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
+    
     <application
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
@@ -29,7 +32,9 @@
 		<activity android:name=".WebplayerActivity"/>    
         
         <activity android:name=".PiechartActivity"/>   	 
-      			  
+		
+		<activity android:name=".YouSlowActivity"/>    
+        			  
       	<activity android:name = "org.achartengine.GraphicalActivity"/>
     	
     </application>

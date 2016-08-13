@@ -1,6 +1,23 @@
 package com.testyoutube;
 
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+
 import org.achartengine.GraphicalView;
+
+import android.app.ActionBar.LayoutParams;
+import android.app.Activity;
+import android.content.Context;
+import android.graphics.Color;
+import android.os.Bundle;
+import android.widget.LinearLayout;
+import android.widget.ScrollView;
 
 public class PiechartActivity extends Activity  {
 	
@@ -10,7 +27,7 @@ public class PiechartActivity extends Activity  {
 	@Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);          
-        getActionBar().setTitle("Played bitrates for different ISPs");
+        getActionBar().setTitle(" Played bitrates for different ISPs");
                 
         LinearLayout parent=new LinearLayout(this); 
         parent.setOrientation(LinearLayout.VERTICAL); 
@@ -66,8 +83,8 @@ public class PiechartActivity extends Activity  {
             }
    	        src.close();            
    	        
-			String label;
-			String data; 			
+			String label="";
+			String data=""; 			
 			
 			String ispname = "";
 			
@@ -76,12 +93,15 @@ public class PiechartActivity extends Activity  {
 			 	Scanner sc = new Scanner(History[h]);  
 			    sc.useDelimiter("&|=");
 				while(sc.hasNext()){
-					label = sc.next(); 
-					data = sc.next();
+					if(sc.hasNext()) label = sc.next(); 
+					if(sc.hasNext()) data = sc.next();
+					
 					if(label.equals("org")){
 						ispname = data;					    
 					    map.put(ispname, ispname);
 					}
+					label="";
+					data="";
 			    }
 			    sc.close();		
 		    }	
@@ -118,8 +138,8 @@ public class PiechartActivity extends Activity  {
             }
    	        src.close();            
    	        
-			String label;
-			String data; 			
+			String label="";
+			String data=""; 			
 			
 			String ispname = "";
 			 
@@ -128,8 +148,8 @@ public class PiechartActivity extends Activity  {
 			 	Scanner sc = new Scanner(History[h]);  
 			    sc.useDelimiter("&|=");
 				while(sc.hasNext()){
-					label = sc.next(); 
-					data = sc.next();
+					if(sc.hasNext()) label = sc.next(); 
+					if(sc.hasNext()) data = sc.next();
 					
 					if(label.equals("org")){
 						ispname = data;
@@ -161,7 +181,10 @@ public class PiechartActivity extends Activity  {
 							}
 						}
 						sa.close();
-					} 
+						
+					}
+					label="";
+				 	data=""; 
 			    }
 			    sc.close();			     
 		    }        

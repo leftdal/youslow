@@ -1,11 +1,24 @@
 package com.testyoutube;
   
+import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Scanner;
+import java.util.Set;
+
 import org.achartengine.ChartFactory;
 import org.achartengine.chart.PointStyle;
 import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;  
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
-import org.achartengine.renderer.XYSeriesRenderer;  
+import org.achartengine.renderer.XYSeriesRenderer;
+ 
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Color;
  
 
 public class LineChart {
@@ -18,8 +31,11 @@ public class LineChart {
 	private Map<String, int[]> map = new HashMap<String, int[]>();
 	private int[] xlabel= {1,2,3,4,5,6,7,8,9,10,11,12};
 	private int[] timelengthbymonth = new int[12];
-	private int[] colorlist = new int[]{Color.BLUE, Color.RED, Color.CYAN, Color.GRAY, Color.GREEN, Color.MAGENTA};
+	private int[] colorlist = new int[]{Color.MAGENTA, Color.RED, Color.CYAN, Color.GRAY, Color.GREEN, Color.BLUE};
 	private PointStyle[] pointstylelist = new PointStyle[]{PointStyle.CIRCLE, PointStyle.DIAMOND, PointStyle.SQUARE, PointStyle.TRIANGLE, PointStyle.POINT};
+
+
+	
 	
 	public LineChart(){
 		  
@@ -46,7 +62,10 @@ public class LineChart {
         			SingleSeries[j].add(xlabel[i], 0);
         		}
         		else{
-        			SingleSeries[j].add(xlabel[i], (double)data[i]/timelengthbymonth[i]);
+        			double d=(double)data[i]/(double)timelengthbymonth[i];
+        			d=d*100.0*100.0;
+        			d=(double)Math.ceil(d)/100;
+        			SingleSeries[j].add(xlabel[i], d);
         		}
     		} 
         }
@@ -63,7 +82,7 @@ public class LineChart {
 		} 
  
         Intent intent = ChartFactory.getLineChartIntent(context, dataset, multiRenderer,
-        		"Average rebuffering ratio(%)");
+        		" Avg. rebuffering ratio (%)");
         return intent;
     }
        
@@ -76,8 +95,8 @@ public class LineChart {
         renderer.setGridColor(Color.WHITE);
         renderer.setShowGrid(true);
         renderer.setApplyBackgroundColor(true);
-        renderer.setXTitle("MONTH");
-        renderer.setYTitle("AVERAGE REBUFFERING RATIO(%)");
+        renderer.setXTitle("Month");
+        renderer.setYTitle("Avg. rebuffering ratio (%)");
         
         // Changing font size and point size
         renderer.setAxisTitleTextSize(26); 
@@ -87,7 +106,7 @@ public class LineChart {
         renderer.setPointSize(8);
         
         // Setting margins: above, left, below, right
-        renderer.setMargins(new int[] {0, 50, 150, 20});
+        renderer.setMargins(new int[] {0, 70, 100, 50});
         
         for(int i=0;i < xlabel.length;i++){
         	renderer.addXTextLabel(i+1, mMonth[i]);
@@ -131,12 +150,12 @@ public class LineChart {
     	    src.useDelimiter("/");
     	    while(src.hasNext()){ 
     	    	History[n] = src.next();
-    	   	    n++;
+    	    	n++;
             }
    	        src.close();            
    	        
-			String label;
-			String data;
+			String label="";
+			String data="";
 			String ispname="";
 			 
 			int month = 0;
@@ -147,21 +166,22 @@ public class LineChart {
 			 	Scanner sc = new Scanner(History[h]);  
 			    sc.useDelimiter("&|=");
 				while(sc.hasNext()){
-					label = sc.next(); 
-					data = sc.next();
+					if(sc.hasNext()) label = sc.next(); 
+					if(sc.hasNext()) data = sc.next();
 					
+//					Log.i("label",label);
+//					Log.i("data",data);
 					if(label.equals("localtime")){
 						month = Integer.parseInt(data.substring(5,7))-1;
-					}
-					else if(label.equals("bufferduration")){
+					}else if(label.equals("bufferduration")){
 						bufferformonth = Integer.parseInt(data); 
-					}
-					else if(label.equals("timelength")){
+					}else if(label.equals("timelength")){
 						timelengthbymonth[month] += Integer.parseInt(data);
-					}
-					else if(label.equals("org")){
+					}else if(label.equals("org")){
 						ispname = data;
 					}
+					label="";
+					data="";
 			    }
 			    sc.close();
 			    
