@@ -1,0 +1,138 @@
+<!DOCTYPE>
+<html>
+  <style>
+	  html {
+	   margin: 0px;
+	   height: 100%;
+	   width: 100%;
+	}
+	
+	body {
+	   margin: 0px;
+	   min-height: 100%;
+	   width: 100%;
+	}
+  </style>
+  <body>
+   
+    <!-- The <iframe> (and video player) will replace this <div> tag. -->
+    <div id="player"></div>
+
+    <script type = "text/javascript">
+      // This code loads the IFrame Player API code asynchronously.
+      var tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+     
+      // Getting player information form JAVA
+      var videoID = AndroidFunction.getVideoid();
+      var videoheight = AndroidFunction.getHeight()/window.devicePixelRatio;
+      var videowidth = AndroidFunction.getWidth()/window.devicePixelRatio;
+     
+      // This function creates an <iframe> (and YouTube player)  after the API code downloads.
+      var player;      
+      var iniTime;
+      var inibuf = true;
+      var getCurrent;
+      var getDuration;
+      
+      function onYouTubeIframeAPIReady() {
+        player = new YT.Player('player', {
+          height: videoheight,
+          width: videowidth,
+          videoId: videoID,
+          events: {
+            'onReady': onPlayerReady,
+            'onStateChange': onPlayerStateChange,
+            'onPlaybackQualityChange': onPlayerPlaybackQualityChange
+          }
+        });
+      }
+
+      function onPlayerReady(event) {
+    	 /* iniTime = new Date(); */
+    	 
+    	 window.setInterval(function(){
+    		  /// call your function here
+    		  updateStatus();
+    		}, 1000);
+      }
+      
+      function updateStatus(){
+    	 var status=player.getPlayerState();
+    	 if(status!=5){
+    		if(iniTime==null){
+    			iniTime = new Date();
+    		}
+        	var myTime = new Date(); 
+         	var timeDur =  Math.round((myTime.getTime()-iniTime.getTime())/1000); 
+         	var fracPlay = player.getVideoLoadedFraction();
+         	AndroidFunction.showToast(fracPlay, "loadedfrac");
+         	AndroidFunction.showToast(timeDur, "timelength");
+         	getCurrent = player.getCurrentTime();
+			AndroidFunction.showToast(getCurrent, "getCurrentTime");
+			getDuration = player.getDuration();
+			AndroidFunction.showToast(getDuration, "getDuration");
+			var currentQuality=player.getPlaybackQuality();
+			AndroidFunction.showToast(currentQuality, "currentQuality");
+    	 }
+     	 AndroidFunction.showToast(status.toString(), "status");
+     	 
+		     	 
+     	/* player.getPlayerState() */
+      }
+ 
+      // Sending playing state changing information 
+      function onPlayerStateChange(event) { 
+    	 var myTime = new Date(); 
+    	 var timeDur =  Math.round((myTime.getTime()-iniTime.getTime())/1000); 
+    	 AndroidFunction.showToastState(event.data, timeDur); // check buffering
+    	 var fracPlay = player.getVideoLoadedFraction();
+    	 AndroidFunction.showToast(fracPlay, "loadedfrac");
+    	 AndroidFunction.showToast(timeDur, "timelength");
+    	 if(inibuf && event.data == 1){
+    		AndroidFunction.showToast(timeDur,"inibuffer");
+    		inibuf = false;
+    	 }
+      } 
+      
+      // Sending playback quality changing information
+ 	  function onPlayerPlaybackQualityChange(event){
+ 		 var myTime = new Date(); 		 
+ 		 var timeDur =  Math.round((myTime.getTime()-iniTime.getTime())/1000); 
+    	 AndroidFunction.showToastResolution(event.data, timeDur);	
+    	 
+    	 var allquality = player.getAvailableQualityLevels();
+     	 var allqualityString = "";
+     	 for (var i = 0; i < allquality.length - 1; i++) {
+     		allqualityString += allquality[i] + ":";
+     	 }
+     	 if (allquality.length > 0){
+     	 	AndroidFunction.showToast(allqualityString, "allquality");
+     	 }
+      }
+      
+      // Sending back statistic parameters
+ 	  function stopVideo() {        
+         var fracPlay = player.getVideoLoadedFraction();
+	     AndroidFunction.showToast(fracPlay, "loadedfrac"); 
+	     var timeDur =  Math.round((myTime.getTime()-iniTime.getTime())/1000); 
+	     AndroidFunction.showToast(timeDur, "timelength");
+	     if(inibuf && event.data == 1){
+	     	AndroidFunction.showToast(timeDur,"inibuffer");
+	     	inibuf = false;
+	     }
+	     var allquality = player.getAvailableQualityLevels();
+     	 var allqualityString = "";
+     	 for (var i = 0; i < allquality.length - 1; i++) {
+     		allqualityString += allquality[i] + ":";
+     	 }
+     	 if (allquality.length > 0){
+     	 	AndroidFunction.showToast(allqualityString, "allquality");
+     	 }
+	     player.stopVideo();
+       }  	    
+    </script>  
+  </body>
+</html>
