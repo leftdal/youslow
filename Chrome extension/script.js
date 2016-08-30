@@ -95,10 +95,19 @@ var version='Chrome 1.2.9';
 var prev_getCurrentTime=0;
 var isVideoSkippedByUsers=false;
 var num_of_skips=0;
+var num_of_skips_forward=0;
+var num_of_skips_backward=0;
 
 var T_num_of_skips=0;
+var T_num_of_skips_forward=0;
+var T_num_of_skips_backward=0;
 var T_prev_getCurrentTime=0;
 var T_isVideoSkippedByUsers=false;
+
+
+var currentPlayBackTime=0;
+var T_currentPlayBackTime=0;
+
 
    
 
@@ -393,9 +402,24 @@ function onYouTubePlayerReady(playerId) {
 				isVideoSkippedByUsers=true;
 				num_of_skips=num_of_skips+1;
 				console.log("YouSlow: Video skipped by users - "+num_of_skips);
+				
+				if(gap>2) num_of_skips_forward=num_of_skips_forward+1;
+				else num_of_skips_backward=num_of_skips_backward+1;
+
+				
 			}
 			prev_getCurrentTime=current;
 		}
+		
+		
+		/*
+		 * CurrentPlaybackTime update
+		 * It indicates the currently playing video time
+		 * It is different from the timelength that shows the total amount of time the viewer stays in the video session
+		 */
+		currentPlayBackTime=current;
+		
+		
 	},1000);
 	
 
@@ -959,6 +983,11 @@ function initialData(){
 	num_of_skips=0;
 	prev_getCurrentTime=0;
 	isVideoSkippedByUsers=false;
+	
+	num_of_skips_forward=0;
+	num_of_skips_backward=0;
+	
+	currentPlayBackTime=0;
 }
 
 
@@ -992,7 +1021,11 @@ function initialData_T(){
 	T_isAdblockDetected=false;
 	T_num_of_skips=0;
 	T_prev_getCurrentTime=0;
-	T_isVideoSkippedByUsers=false;	
+	T_isVideoSkippedByUsers=false;
+	
+	T_num_of_skips_forward=0;
+	T_num_of_skips_backward=0;
+	T_currentPlayBackTime=0;
 }
 
 
@@ -1134,10 +1167,13 @@ function call_data_for_video_url_change_event(){
 	    					+"&videobytes="+total_video_bytes_one_second_ago
 	    					+"&videoduration="+videoduration_one_second_ago
 	    					+"&adblock="+isAdblockDetected
-	    					+"&numofskips="+num_of_skips;
+	    					+"&numofskips="+num_of_skips
+	    					+"&numofskipsforward="+num_of_skips_forward
+	    					+"&numofskipsbackward="+num_of_skips_backward
+	    					+"&playbacktime="+currentPlayBackTime;
 
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured12.php?"+(URLparameters);
 	    
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured13.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
 	    
@@ -1153,8 +1189,6 @@ function call_data_for_video_url_change_event(){
 		xhr.send();
 		
 	}
-	
-	
 	
 	
 	
@@ -1206,6 +1240,16 @@ function report_previously_closed_events(){
         T_prev_getCurrentTime=event.detail.prev_getCurrentTime;
         T_num_of_skips=event.detail.num_of_skips;
 
+	    T_num_of_skips_forward=event.detail.num_of_skips_forward;
+	    T_num_of_skips_backward=event.detail.num_of_skips_backward;
+        T_currentPlayBackTime=event.detail.currentPlayBackTime;
+
+	    
+
+	    
+
+        
+        
 
     	/*
     	 * For safety check
@@ -1352,6 +1396,17 @@ function bufferingStatusUpdate(){
 	    window.localStorage.removeItem("num_of_skips");      // <-- Local storage!
 	    window.localStorage.setItem("num_of_skips", num_of_skips);  // <-- Local storage!
 
+	    window.localStorage.removeItem("num_of_skips_forward");      // <-- Local storage!
+	    window.localStorage.setItem("num_of_skips_forward", num_of_skips_forward);  // <-- Local storage!
+
+	    window.localStorage.removeItem("num_of_skips_backward");      // <-- Local storage!
+	    window.localStorage.setItem("num_of_skips_backward", num_of_skips_backward);  // <-- Local storage!
+
+	    window.localStorage.removeItem("currentPlayBackTime");      // <-- Local storage!
+	    window.localStorage.setItem("currentPlayBackTime", currentPlayBackTime);  // <-- Local storage!
+
+
+	    
 	    window.localStorage.removeItem("prev_getCurrentTime");      // <-- Local storage!
 	    window.localStorage.setItem("prev_getCurrentTime", prev_getCurrentTime);  // <-- Local storage!
 	    
@@ -1387,11 +1442,16 @@ function bufferingStatusUpdate(){
     		"videoDuration": videoduration,
     		"adblock": isAdblockDetected,
     		"num_of_skips": num_of_skips,
+    		"num_of_skips_forward": num_of_skips_forward,
+    		"num_of_skips_backward": num_of_skips_backward,
+    		"currentPlayBackTime": currentPlayBackTime,
     		"prev_getCurrentTime": prev_getCurrentTime,
     		"isVideoSkippedByUsers": isVideoSkippedByUsers,
     		"fraction": fraction.toString(),
     		"AllAdsLength": AllAdsLength
 
+
+    	    
 
     		/*
     		 * avglatency, video_chunks, video_bytes, videoduration updated in contentscript.js page
@@ -1570,14 +1630,18 @@ function reportWithPreviousData(){
 							+"&videobytes="+T_total_video_bytes
 	    					+"&videoduration="+T_videoduration
 	    					+"&adblock="+T_isAdblockDetected
-	    					+"&numofskips="+T_num_of_skips;
+	    					+"&numofskips="+T_num_of_skips
+	    					+"&numofskipsforward="+T_num_of_skips_forward
+	    					+"&numofskipsbackward="+T_num_of_skips_backward
+	    		    		+"&playbacktime="+T_currentPlayBackTime;
+
 
 
 
 	    
 	    
 
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured12.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured13.php?"+(URLparameters);
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
 	    
@@ -1746,11 +1810,14 @@ function report(){
 							+"&videobytes="+total_video_bytes
 	    					+"&videoduration="+videoduration
 	    					+"&adblock="+isAdblockDetected
-	    					+"&numofskips="+num_of_skips;
+	    					+"&numofskips="+num_of_skips
+	    					+"&numofskipsforward="+num_of_skips_forward
+	    					+"&numofskipsbackward="+num_of_skips_backward
+	    		    		+"&playbacktime="+currentPlayBackTime;
 
 
 		
-	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured12.php?"+(URLparameters);
+	    var videoInfoURL = "https://dyswis.cs.columbia.edu/youslow/dbupdatesecured13.php?"+(URLparameters);
 	    
 	    
 	    console.log("YouSlow: reported URLparameters - "+URLparameters);
