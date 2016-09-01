@@ -89,7 +89,7 @@ var num_of_video_chunks_two_second_ago=0;
 var total_video_bytes_two_second_ago=0;
 var videoduration_two_second_ago=0;
 
-var version='Chrome 1.2.9';
+var version='Chrome 1.3.0';
 
 
 var prev_getCurrentTime=0;
@@ -430,6 +430,7 @@ function onYouTubePlayerReady(playerId) {
 	 * The old measurement will be reported when the client watches video again
 	 */
 	setInterval(function(){
+		
 		var initialState = player.getPlayerState();
         if(initialState==1){ // Video playing
 			bufferingStatusUpdateValue = "DOWN(PLAYING)";
@@ -1693,29 +1694,31 @@ function printout_all_T_paramters(){
 
 function printout_all_paramters(){
 
-    var URLparameters = "localtime="+timeReport	
-	+"&hostname="+hostname
-	+"&city="+city
-	+"&region="+region
-	+"&country="+country
-	+"&loc="+loc
-	+"&org="+org
-	+"&numofrebufferings="+numofrebufferings
-	+"&bufferduration="+bufferingDuration
-	+"&bufferdurationwithtime="+bufferdurationwithtime
-	+"&resolutionchanges="+NumOfResolutionChanges
-	+"&requestedresolutions="+requestedResolutions
-	+"&requestedresolutionswithtime="+requestedresolutionswithtime
-	+"&timelength="+elapsedTime.toString()
-	+"&initialbufferingtime="+elapsedinitialBufferingTime.toString()
-	+"&abandonment="+previouslyAbandonedDuetoBuffering.toString()
-	+"&avglatency="+avglatency
-	+"&allquality="+available_video_quality
-	+"&fraction="+fraction
-    +"&AllAdsLength="+AllAdsLength;
-	
-	
-	console.log("YouSlow: All - "+URLparameters);
+    console.log("YouSlow measurements");
+    console.log("====================");
+
+    console.log("Location: "+getLocationInfo());
+    console.log("Video length: "+getVideoDuration()+"s");
+    console.log("PlaybackTime: "+getPlaybackTime()+"s");
+    console.log("Elapsed time: "+getElapsedTime()+"s");
+    console.log("AdBlock status: "+getAdBlockStatus());
+    console.log("Ads length: "+getAdsDuration()+"s");
+    console.log("Initial buffering duration: "+getInitialBufferingDuration()+"s");
+
+    console.log("Num. of rebufferings: "+getNumOfRebufferings());
+    console.log("Total rebuffering duration: "+getReufferingDuration()+"s");
+    console.log("All bitrates: "+getAllBitrates());
+    console.log("Num. of selected bitrates: "+getNumOfResolutionChanges());
+    console.log("Requested bitrates: "+getRequestedBitrates());
+    
+    console.log("Num. skips - total: "+getNumOfSkips());
+    console.log("Num. skips - forward: "+getNumOfSkipsForward());
+    console.log("Num. skips - backward: "+getNumOfSkipsBackward());
+
+    console.log("Downlaoded video bytes: "+getTotalVideoBytes()+"bytes");
+    console.log("Downlaoded video chunks: "+getNumOfChunks());
+    console.log("Avg. HTTP latency: "+getAvgHttpLatency()+"ms");
+    
 }
 
 
@@ -1834,9 +1837,98 @@ function report(){
 		xhr.send();
 		
 	}
-	
-	
-	
+}
+
+
+
+/*
+ * Additional YouSlow functions
+ */
+function getPlaybackTime(){
+	return currentPlayBackTime;
+}
+
+
+function getNumOfSkipsBackward(){
+	return num_of_skips_backward;
+}
+
+
+function getNumOfSkipsForward(){
+	return num_of_skips_forward;
+}
+
+
+function getNumOfSkips(){
+	return num_of_skips;
+}
+
+
+function getAdBlockStatus(){
+	return isAdblockDetected;
+}
+
+
+
+function getVideoDuration(){
+	return videoduration;
+}
+
+
+function getTotalVideoBytes(){
+	return total_video_bytes;
+}
+
+
+function getNumOfChunks(){
+	return num_of_video_chunks;
+}
+
+
+function getAdsDuration(){
+	return AllAdsLength;
+}
+
+
+
+function getAllBitrates(){
+	return available_video_quality;
+}
+
+
+function getAvgHttpLatency(){
+	return avglatency;
+}
+
+
+function getLocationInfo(){
+	return org+", "+city+", "+region+", "+country+" - Loc: "+loc;
+}
+
+function getNumOfRebufferings(){
+	return numofrebufferings;
+}
+
+
+
+function getReufferingDuration(){
+	return bufferingDuration;
+}
+
+function getNumOfResolutionChanges(){
+	return NumOfResolutionChanges;
+}
+
+function getRequestedBitrates(){
+	return requestedresolutionswithtime;
+}
+
+function getElapsedTime(){
+	return elapsedTime;
+}
+
+function getInitialBufferingDuration(){
+	return elapsedinitialBufferingTime;
 }
 
 
@@ -1844,6 +1936,16 @@ function report(){
 
 
 
+
+
+
+
+
+
+
+/*
+ * Covert special characters
+ */
 function convert(t)
 {
 	t = t.replace('Ã¡', 'a');
