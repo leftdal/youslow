@@ -1,7 +1,10 @@
 YouTube Too Slow!? - YouSlow
 =======
 
-YouSlow is designed to monitor YouTube buffering events while users watch YouTube videos on Chrome browsers. Our monitoring system collects and marks reported data on Google map, then calculates statistics in terms of an Internet service provider (ISP), buffering duration and location.
+![alt tag](https://github.com/leftdal/youslow/blob/master/github_mobile.png)
+
+
+YouSlow is designed to monitor YouTube buffering events while users watch YouTube videos on Chrome browsers, iOS and Android mobile devices. Our monitoring system collects and marks reported data on Google map, then calculates statistics in terms of an Internet service provider (ISP), buffering duration and location.
 
 There are many approaches to measure user-perceived video quality. Most of work focus more on analyzing HTTP/TCP packets (e.g., video packet loss rate, delay and throughput) from the network operator’s point of view. These quality-of-service (QoS) metrics typically show the impact on video quality, but does not represent the user-perceived video quality.
 
